@@ -1,6 +1,8 @@
+import queue
 
-
-alphabet = {'a': 1,
+alphabet = {'E':26,
+            'S':1,
+            'a': 1,
             'b': 2,
             'c': 3,
             'd': 4,
@@ -28,8 +30,41 @@ alphabet = {'a': 1,
             'z': 26
             }
 
+neighbors = [(1, 0),(0, 1),(-1, 0),(0, -1)]
+
+def bfs(graph, src, visited):
+
+    nrows = len(graph)
+    ncols = len(graph[0])
+
+    q = queue.Queue()
+
+    visited[src[0]][src[1]] = 1
+
+    q.put((0, 0, 0))
+
+    while not q.empty():
+        u = q.get()
+
+        char = graph[u[0]][u[1]]
+        c_value = alphabet[char]
+        if char == 'E':
+            return u[2]
+        
+        for mod in neighbors:
+            n_row = u[0] + mod[0]
+            n_col = u[1] + mod[1]
+            if n_row > -1 and n_row < nrows and n_col > -1 and n_col < ncols and not visited[n_row][n_col]:
+                n_value = alphabet[graph[n_row][n_col]]
+                
+                if c_value + 1 >= n_value:
+                    q.put((n_row, n_col, u[2] + max(1,max(c_value, n_value) - min(c_value, n_value))))
+                    visited[n_row][n_col] = 1
+
+
+
 def main():
-    with open('example.txt', 'r', encoding='utf-8') as f:
+    with open('input.txt', 'r', encoding='utf-8') as f:
         input = f.readlines()
     
     graph = []
@@ -37,10 +72,18 @@ def main():
         graph.append(list(line.strip()))
 
     nrows = len(graph)
-    ncol = len(graph[0])
-    src 
+    ncols = len(graph[0])
+
+    src = (0, 0, 0)
+    dst = 'E'
+    visited = []
+    for i in range(nrows):
+        row = []
+        for j in range(ncols):
+            row.append(0)
+        visited.append(row)
     
-    print(graph)
+    print(bfs(graph, src, visited))
 
 if __name__ == "__main__":
     main()
