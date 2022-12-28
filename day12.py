@@ -41,7 +41,7 @@ def bfs(graph, src, visited):
 
     visited[src[0]][src[1]] = 1
 
-    q.put((0, 0, 0))
+    q.put((src[0], src[1], 0))
 
     while not q.empty():
         u = q.get()
@@ -56,10 +56,24 @@ def bfs(graph, src, visited):
             n_col = u[1] + mod[1]
             if n_row > -1 and n_row < nrows and n_col > -1 and n_col < ncols and not visited[n_row][n_col]:
                 n_value = alphabet[graph[n_row][n_col]]
-                
-                if c_value + 1 >= n_value:
-                    q.put((n_row, n_col, u[2] + max(1,max(c_value, n_value) - min(c_value, n_value))))
+
+                if n_value < c_value:
+                    q.put((n_row, n_col, u[2] + 1))
                     visited[n_row][n_col] = 1
+                elif n_value == c_value:
+                    q.put((n_row, n_col, u[2] + 1))
+                    visited[n_row][n_col] = 1
+                elif n_value - c_value == 1:
+                    q.put((n_row, n_col, u[2] + 1))
+                    visited[n_row][n_col] = 1
+                '''
+                if c_value + 1 >= n_value:
+                    q.put((n_row, n_col, u[2] + 1))
+                    visited[n_row][n_col] = 1
+                '''
+    
+    return 1000
+                
 
 
 
@@ -74,16 +88,27 @@ def main():
     nrows = len(graph)
     ncols = len(graph[0])
 
-    src = (0, 0, 0)
-    dst = 'E'
-    visited = []
+    srcs = []
     for i in range(nrows):
-        row = []
         for j in range(ncols):
-            row.append(0)
-        visited.append(row)
+            if graph[i][j] in ['a', 'S']:
+                srcs.append((i, j))
     
-    print(bfs(graph, src, visited))
+    dst = 'E'
+
+    min_path = 10000
+
+    for src in srcs:
+        visited = []
+        for i in range(nrows):
+            row = []
+            for j in range(ncols):
+                row.append(0)
+            visited.append(row)
+        min_path = min(min_path, bfs(graph, src, visited))
+
+    print(min_path)
+    
 
 if __name__ == "__main__":
     main()
