@@ -21,7 +21,68 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
+}
+
+func partTwo(file *os.File) uint64 {
+	var cum_sum uint64 = 0
+	scanner := bufio.NewScanner(file)
+
+	var (
+		red         int
+		green       int
+		blue        int
+		red_limit   int
+		green_limit int
+		blue_limit  int
+		tmp         int
+	)
+
+	for scanner.Scan() {
+		red, green, blue = 0, 0, 0
+		red_limit, green_limit, blue_limit = 0, 0, 0
+		tmp = 0
+		line := scanner.Text()
+		_, rest := getGameId(line)
+
+		for _, v := range strings.Split(rest, " ") {
+			number, err := strconv.Atoi(v)
+
+			if err == nil {
+				tmp = number
+				continue
+			}
+
+			switch {
+			case strings.HasPrefix(v, "red"):
+				red += tmp
+
+			case strings.HasPrefix(v, "green"):
+				green += tmp
+
+			case strings.HasPrefix(v, "blue"):
+				blue += tmp
+			}
+
+			if strings.HasSuffix(v, ";") {
+				red_limit = max(red, red_limit)
+				green_limit = max(green, green_limit)
+				blue_limit = max(blue, blue_limit)
+				red = 0
+				green = 0
+				blue = 0
+			}
+			tmp = 0
+		}
+
+		red_limit = max(red, red_limit)
+		green_limit = max(green, green_limit)
+		blue_limit = max(blue, blue_limit)
+
+		cum_sum += uint64(red_limit) * uint64(green_limit) * uint64(blue_limit)
+	}
+
+	return cum_sum
 }
 
 // The sum of revealed cubes of one color in one set
