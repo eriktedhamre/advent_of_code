@@ -29,13 +29,10 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
 }
 
-// Find all Numbers if they are adjacent to a symbol they count
-// Do we find the full number before starting our checking loop or not?
 func partOne(file *os.File) uint64 {
-
 	var cumSum uint64 = 0
 	var tmp int
 	var row string
@@ -77,7 +74,72 @@ func partOne(file *os.File) uint64 {
 	}
 
 	return cumSum
+}
 
+func partTwo(file *os.File) uint64 {
+
+	var cumSum uint64 = 0
+	var tmp int
+	var row string
+	var gridRow []rune
+	var grid [][]rune
+	gearToNumbers := make(map[Pair][]uint64)
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		row = scanner.Text()
+		gridRow = gridRow[:0]
+		gridRow = append(gridRow, []rune(row)...)
+		rowCopy := make([]rune, len(gridRow))
+		copy(rowCopy, gridRow)
+		grid = append(grid, rowCopy)
+	}
+
+	var builder strings.Builder
+	for i, row := range grid {
+		builder.Reset()
+		for j, r := range row {
+			if unicode.IsDigit(r) {
+				builder.WriteString(string(r))
+				if j == len(grid[0])-1 {
+					pairs := isValidPartTwo(builder.String(), grid, i, j)
+					for _, key := range pairs {
+						_, ok := gearToNumbers[key]
+						if !ok {
+							tmp, _ = strconv.Atoi(builder.String())
+							gearToNumbers[key] = []uint64{uint64(tmp)}
+						} else {
+							tmp, _ = strconv.Atoi(builder.String())
+							gearToNumbers[key] = append(gearToNumbers[key], uint64(tmp))
+						}
+					}
+				}
+			} else if len(builder.String()) == 0 {
+				continue
+			} else {
+				pairs := isValidPartTwo(builder.String(), grid, i, j-1)
+				for _, key := range pairs {
+					_, ok := gearToNumbers[key]
+					if !ok {
+						tmp, _ = strconv.Atoi(builder.String())
+						gearToNumbers[key] = []uint64{uint64(tmp)}
+					} else {
+						tmp, _ = strconv.Atoi(builder.String())
+						gearToNumbers[key] = append(gearToNumbers[key], uint64(tmp))
+					}
+				}
+				builder.Reset()
+			}
+		}
+	}
+
+	for _, value := range gearToNumbers {
+		if len(value) == 2 {
+			cumSum += value[0] * value[1]
+		}
+	}
+
+	return cumSum
 }
 
 func isValid(number string, grid [][]rune, row int, col int) bool {
@@ -104,6 +166,35 @@ done:
 	return valid
 }
 
-func partTwo(file *os.File) uint64 {
-	return 0
+func isValidPartTwo(number string, grid [][]rune, row int, col int) []Pair {
+	var result []Pair
+	start := col - len(number) + 1
+	var r rune
+	for i := 0; i < len(number); i++ {
+		for _, p := range moves {
+			if (row+p.row < len(grid)) &&
+				(row+p.row >= 0) &&
+				(start+i+p.col < len(grid[0])) &&
+				(start+i+p.col >= 0) {
+				r = grid[row+p.row][start+i+p.col]
+
+				if r == '*' {
+					pair := Pair{row + p.row, start + i + p.col}
+					if !contains(result, pair) {
+						result = append(result, pair)
+					}
+				}
+			}
+		}
+	}
+	return result
+}
+
+func contains[T comparable](slice []T, item T) bool {
+	for _, element := range slice {
+		if element == item {
+			return true
+		}
+	}
+	return false
 }
