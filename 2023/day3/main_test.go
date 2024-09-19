@@ -12,7 +12,7 @@ func Test_partTwo(t *testing.T) {
 		filepath string
 		expected uint64
 	}{
-		{"example.txt", 2286},
+		{"example.txt", 467835},
 	}
 
 	for _, tt := range tests {
