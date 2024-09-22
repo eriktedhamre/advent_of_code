@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+type Hands struct {
+	mine, wins []int
+}
+
 func main() {
 
 	if len(os.Args) < 2 {
@@ -22,7 +26,7 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
 }
 
 func partOne(file *os.File) uint64 {
@@ -55,6 +59,52 @@ func partOne(file *os.File) uint64 {
 	}
 	return cumSum
 
+}
+
+func partTwo(file *os.File) uint64 {
+	var cumSum uint64 = 0
+	var wins uint64
+	var winningNumbers []int
+	var myNumbers []int
+	var row string
+	scanner := bufio.NewScanner(file)
+	var numberOfTickets []int
+	var hands []Hands
+	for scanner.Scan() {
+		wins = 0
+		row = scanner.Text()
+		winningNumbers, myNumbers = stringToIntSlice(row)
+
+		winCopy := make([]int, len(winningNumbers))
+		myCopy := make([]int, len(myNumbers))
+		copy(winCopy, winningNumbers)
+		copy(myCopy, myNumbers)
+		hands = append(hands, Hands{mine: myCopy, wins: winCopy})
+	}
+
+	numberOfTickets = make([]int, len(hands))
+	for i := 0; i < len(numberOfTickets); i++ {
+		numberOfTickets[i] = 1
+	}
+
+	for hand_index, h := range hands {
+		wins = 0
+		for _, v := range h.mine {
+			if contains(h.wins, v) {
+				wins++
+			}
+		}
+		for i := 0; i < int(wins); i++ {
+			if hand_index+1+i < len(numberOfTickets) {
+				numberOfTickets[hand_index+1+i] += numberOfTickets[hand_index]
+			}
+		}
+	}
+
+	for _, v := range numberOfTickets {
+		cumSum += uint64(v)
+	}
+	return cumSum
 }
 
 func stringToIntSlice(row string) ([]int, []int) {
