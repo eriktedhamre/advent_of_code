@@ -28,7 +28,7 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
 }
 
 func partOne(file *os.File) uint64 {
@@ -82,6 +82,64 @@ func partOne(file *os.File) uint64 {
 		tmp = useMapping(tmp, tempToHumid)
 		tmp = useMapping(tmp, humidityToLoc)
 		lowest = min(lowest, tmp)
+	}
+
+	return lowest
+}
+
+func partTwo(file *os.File) uint64 {
+	var row string
+	var seeds []uint64
+	var seedToSoil []mapping
+	var soilToFert []mapping
+	var fertToWater []mapping
+	var waterToLight []mapping
+	var lightToTemp []mapping
+	var tempToHumid []mapping
+	var humidityToLoc []mapping
+
+	var lowest uint64 = math.MaxInt64
+	var tmp uint64
+
+	scanner := bufio.NewScanner(file)
+
+	scanner.Scan()
+	row = scanner.Text()
+	for _, v := range strings.Split(row, " ") {
+		value, err := strconv.Atoi(v)
+		if err != nil {
+			continue
+		}
+		seeds = append(seeds, uint64(value))
+	}
+
+	scanner.Scan() // Empty Line
+	scanner.Scan() // Seed To Soil
+	seedToSoil = readMapping(scanner)
+	scanner.Scan() // Soil to Fert
+	soilToFert = readMapping(scanner)
+	scanner.Scan() // Fert-to-Water
+	fertToWater = readMapping(scanner)
+	scanner.Scan() // Water to Light
+	waterToLight = readMapping(scanner)
+	scanner.Scan() // Light to Temp
+	lightToTemp = readMapping(scanner)
+	scanner.Scan() // Temp to humid
+	tempToHumid = readMapping(scanner)
+	scanner.Scan() // humid to loc
+	humidityToLoc = readMapping(scanner)
+
+	for i := 0; i < len(seeds); i += 2 {
+		for j := seeds[i]; j < seeds[i]+seeds[i+1]; j++ {
+			tmp = useMapping(j, seedToSoil)
+			tmp = useMapping(tmp, soilToFert)
+			tmp = useMapping(tmp, fertToWater)
+			tmp = useMapping(tmp, waterToLight)
+			tmp = useMapping(tmp, lightToTemp)
+			tmp = useMapping(tmp, tempToHumid)
+			tmp = useMapping(tmp, humidityToLoc)
+			lowest = min(lowest, tmp)
+		}
 	}
 
 	return lowest
