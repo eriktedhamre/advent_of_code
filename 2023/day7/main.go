@@ -15,6 +15,38 @@ type Hand struct {
 	tier int8
 }
 
+var cardMap = map[byte]int{
+	'A': 12,
+	'K': 11,
+	'Q': 10,
+	'J': 9,
+	'T': 8,
+	'9': 7,
+	'8': 6,
+	'7': 5,
+	'6': 4,
+	'5': 3,
+	'4': 2,
+	'3': 1,
+	'2': 0,
+}
+
+var cardMapTwo = map[byte]int{
+	'A': 12,
+	'K': 11,
+	'Q': 10,
+	'T': 9,
+	'9': 8,
+	'8': 7,
+	'7': 6,
+	'6': 5,
+	'5': 4,
+	'4': 3,
+	'3': 2,
+	'2': 1,
+	'J': 0,
+}
+
 func main() {
 
 	if len(os.Args) < 2 {
@@ -28,7 +60,51 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
+}
+
+func partTwo(file *os.File) uint64 {
+	var cumSum uint64 = 0
+	var input []string
+	var row string
+	var hands []Hand
+	cards := make([]int, 13)
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		row = scanner.Text()
+
+		input = strings.Fields(row)
+		int_bid, err := strconv.Atoi(input[1])
+		if err != nil {
+			fmt.Errorf("Failed strconv for %s", row)
+		}
+		hands = append(hands, Hand{hand: input[0], bid: uint64(int_bid)})
+	}
+
+	for i, _ := range hands {
+		hands[i].tier = calculateHandTierTwo(&hands[i], cards)
+	}
+
+	sort.Slice(hands, func(i int, j int) bool {
+		if hands[i].tier != hands[j].tier {
+			return hands[i].tier > hands[j].tier
+		}
+		for k := 0; k < 5; k++ {
+			if hands[i].hand[k] == hands[j].hand[k] {
+				continue
+			}
+			return cardMapTwo[hands[i].hand[k]] > cardMapTwo[hands[j].hand[k]]
+		}
+		return false
+	})
+
+	for i, v := range hands {
+		cumSum += uint64((len(hands) - i)) * v.bid
+	}
+
+	return cumSum
 }
 
 func partOne(file *os.File) uint64 {
@@ -63,65 +139,7 @@ func partOne(file *os.File) uint64 {
 			if hands[i].hand[k] == hands[j].hand[k] {
 				continue
 			}
-			var val_i uint64
-			var val_j uint64
-			switch hands[i].hand[k] {
-			case 'A':
-				val_i = 14
-			case 'K':
-				val_i = 13
-			case 'Q':
-				val_i = 12
-			case 'J':
-				val_i = 11
-			case 'T':
-				val_i = 10
-			case '9':
-				val_i = 9
-			case '8':
-				val_i = 8
-			case '7':
-				val_i = 7
-			case '6':
-				val_i = 6
-			case '5':
-				val_i = 5
-			case '4':
-				val_i = 4
-			case '3':
-				val_i = 3
-			case '2':
-				val_i = 2
-			}
-			switch hands[j].hand[k] {
-			case 'A':
-				val_j = 14
-			case 'K':
-				val_j = 13
-			case 'Q':
-				val_j = 12
-			case 'J':
-				val_j = 11
-			case 'T':
-				val_j = 10
-			case '9':
-				val_j = 9
-			case '8':
-				val_j = 8
-			case '7':
-				val_j = 7
-			case '6':
-				val_j = 6
-			case '5':
-				val_j = 5
-			case '4':
-				val_j = 4
-			case '3':
-				val_j = 3
-			case '2':
-				val_j = 2
-			}
-			return val_i > val_j
+			return cardMap[hands[i].hand[k]] > cardMap[hands[j].hand[k]]
 		}
 		return false
 	})
@@ -133,6 +151,71 @@ func partOne(file *os.File) uint64 {
 	return cumSum
 }
 
+func calculateHandTierTwo(hand *Hand, cards []int) int8 {
+	fiveOfAKind := false
+	fourOfAKind := false
+	threeOfAKind := false
+	onePair := 0
+	highCard := 0
+	var jokers int
+	for _, char := range hand.hand {
+		cards[cardMap[byte(char)]] += 1
+	}
+
+	for _, v := range cards {
+		switch v {
+		case 0:
+			continue
+		case 1:
+			highCard += 1
+		case 2:
+			onePair += 1
+		case 3:
+			threeOfAKind = true
+		case 4:
+			fourOfAKind = true
+		case 5:
+			fiveOfAKind = true
+		}
+	}
+
+	jokers = cards[cardMap[byte('J')]]
+
+	for i, _ := range cards {
+		cards[i] = 0
+	}
+
+	switch {
+	case fiveOfAKind ||
+		(fourOfAKind && jokers == 1) ||
+		(threeOfAKind && jokers == 2) ||
+		(onePair == 1 && jokers == 3) ||
+		(jokers == 4):
+		return 7
+	case fourOfAKind ||
+		(threeOfAKind && (jokers == 1)) ||
+		(jokers == 3) ||
+		(onePair == 2 && jokers == 2):
+		return 6
+	case (onePair == 1 && threeOfAKind) ||
+		(onePair == 2 && jokers == 1):
+		return 5
+	case threeOfAKind ||
+		(onePair == 1 && jokers == 1) ||
+		(jokers == 2):
+		return 4
+	case (onePair == 2) ||
+		(onePair == 1 && jokers == 1):
+		return 3
+	case (onePair == 1) ||
+		jokers == 1:
+		return 2
+	default:
+		return 1
+	}
+
+}
+
 func calculateHandTier(hand *Hand, cards []int) int8 {
 	fiveOfAKind := false
 	fourOfAKind := false
@@ -140,34 +223,7 @@ func calculateHandTier(hand *Hand, cards []int) int8 {
 	onePair := 0
 	highCard := 0
 	for _, char := range hand.hand {
-		switch char {
-		case 'A':
-			cards[12] += 1
-		case 'K':
-			cards[11] += 1
-		case 'Q':
-			cards[10] += 1
-		case 'J':
-			cards[9] += 1
-		case 'T':
-			cards[8] += 1
-		case '9':
-			cards[7] += 1
-		case '8':
-			cards[6] += 1
-		case '7':
-			cards[5] += 1
-		case '6':
-			cards[4] += 1
-		case '5':
-			cards[3] += 1
-		case '4':
-			cards[2] += 1
-		case '3':
-			cards[1] += 1
-		case '2':
-			cards[0] += 1
-		}
+		cards[cardMap[byte(char)]] += 1
 	}
 
 	for _, v := range cards {
