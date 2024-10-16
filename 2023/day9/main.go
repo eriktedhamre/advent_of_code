@@ -21,7 +21,25 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
+}
+
+func partTwo(file *os.File) int64 {
+	var sum int64
+	var histories [][]int64
+	var row string
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		row = scanner.Text()
+
+		rowCopy := strings.Fields(row)
+		history, _ := convertToInt64Slice(rowCopy)
+		histories = append(histories, history)
+		sum += solveHistoryTwo(histories)
+		histories = histories[:0]
+	}
+	return sum
 }
 
 func partOne(file *os.File) int64 {
@@ -40,6 +58,39 @@ func partOne(file *os.File) int64 {
 		histories = histories[:0]
 	}
 	return sum
+}
+
+func solveHistoryTwo(histories [][]int64) int64 {
+	// Negative numbers :)
+	var hCount uint64 = 0
+	var diff int64
+	var allZeros bool
+DONE:
+	for {
+		allZeros = true
+		if len(histories[hCount]) < 2 {
+			break DONE
+		}
+		histories = append(histories, make([]int64, 0, len(histories[hCount])-1))
+		for i := 0; i < len(histories[hCount])-1; i++ {
+			diff = histories[hCount][i+1] - histories[hCount][i]
+
+			if diff != 0 {
+				allZeros = false
+			}
+			histories[hCount+1] = append(histories[hCount+1], diff)
+		}
+		hCount++
+		if allZeros {
+			break DONE
+		}
+	}
+
+	histories[len(histories)-1] = append(histories[len(histories)-1], 0)
+	for i := len(histories) - 2; i > -1; i-- {
+		histories[i] = append([]int64{histories[i][0] - histories[i+1][0]}, histories[i]...)
+	}
+	return histories[0][0]
 }
 
 func solveHistory(histories [][]int64) int64 {
