@@ -14,6 +14,13 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Input files
+*input.txt
+*example*.txt
+
+# Test file
+*main_test.go
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
