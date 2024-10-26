@@ -30,7 +30,7 @@ func main() {
 
 func partTwo(file *os.File) uint64 {
 	var sum uint64 = 0
-	var oneMillion uint64 = 1000000
+	var oneMillion uint64 = 999999
 	var image [][]rune
 	var line string
 	var emptyCol uint64
@@ -40,25 +40,12 @@ func partTwo(file *os.File) uint64 {
 	var prefixEmptyCols []uint64
 	var nodes []Node
 
-	// Keep one row slice where you denote if a row is empty
-	// Keep one col slice where you denote if a column is empty
-	// Calculate a prefix sum slice for both of them
-	// Update the indicies of the saved nodes
-	// according to the values in the prefix sum slices
-	// 82
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line = scanner.Text()
 		row := []rune(line)
 		image = append(image, row)
 		emptyRows = append(emptyRows, boolToInt(!strings.ContainsAny(string(line), "#")))
-		// if !strings.ContainsAny(string(line),"#") {
-		// 	// empty_row := make([]rune, len(image[0]))
-		// 	// for i, _ := range empty_row {
-		// 	// 	empty_row[i] = '.'
-		// 	// }
-		// 	// image = append(image, empty_row)
-		// }
 	}
 
 	for col := 0; col < len(image[0]); col++ {
@@ -119,25 +106,12 @@ func partOne(file *os.File) uint64 {
 	var prefixEmptyCols []uint64
 	var nodes []Node
 
-	// Keep one row slice where you denote if a row is empty
-	// Keep one col slice where you denote if a column is empty
-	// Calculate a prefix sum slice for both of them
-	// Update the indicies of the saved nodes
-	// according to the values in the prefix sum slices
-
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line = scanner.Text()
 		row := []rune(line)
 		image = append(image, row)
 		emptyRows = append(emptyRows, boolToInt(!strings.ContainsAny(string(line), "#")))
-		// if !strings.ContainsAny(string(line),"#") {
-		// 	// empty_row := make([]rune, len(image[0]))
-		// 	// for i, _ := range empty_row {
-		// 	// 	empty_row[i] = '.'
-		// 	// }
-		// 	// image = append(image, empty_row)
-		// }
 	}
 
 	for col := 0; col < len(image[0]); col++ {
