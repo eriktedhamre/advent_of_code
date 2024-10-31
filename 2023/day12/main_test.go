@@ -63,6 +63,35 @@ func TestMatches(t *testing.T) {
 	}
 }
 
+func TestSolverWithCache(t *testing.T) {
+
+	tests := []struct {
+		springs    []rune
+		conditions []int
+		expected   uint64
+	}{
+		{[]rune{'#', '.', '#', '.', '#', '#', '#'}, []int{1, 1, 3}, 1},
+		{[]rune{'#', '?', '#', '.', '#', '#', '#'}, []int{1, 1, 3}, 1},
+		{[]rune{'?', '.', '#', '.', '#', '#', '#'}, []int{1, 1, 3}, 1},
+		{[]rune{'?', '.', '?', '.', '#', '#', '#'}, []int{1, 1, 3}, 1},
+
+		{[]rune{'?', '?', '?', '.', '#', '#', '#'}, []int{1, 1, 3}, 1},
+		{[]rune{'?', '#', '?', '#', '?', '#', '?', '#', '?', '#', '?', '#', '?', '#', '?'}, []int{1, 3, 1, 6}, 1},
+		{[]rune{'.', '?', '?', '.', '.', '?', '?', '.', '.', '.', '?', '#', '#', '.'}, []int{1, 1, 3}, 4},
+		{[]rune{'?', '#', '#', '#', '?', '?', '?', '?', '?', '?', '?', '?'}, []int{3, 2, 1}, 10},
+	}
+
+	for i, tt := range tests {
+		clear(cache)
+		result := solverWithCache(tt.springs, tt.conditions, 0, 0)
+		if result != tt.expected {
+			t.Errorf("Expected: %d, got: %d Test: %d",
+				tt.expected, result, i)
+		}
+	}
+
+}
+
 func TestSolver(t *testing.T) {
 
 	tests := []struct {
@@ -90,26 +119,26 @@ func TestSolver(t *testing.T) {
 
 }
 
-// func Test_partTwo(t *testing.T) {
+func Test_partTwo(t *testing.T) {
 
-// 	tests := []struct {
-// 		filepath string
-// 		expected uint64
-// 	}{
-// 		{"example.txt", 1030},
-// 	}
+	tests := []struct {
+		filepath string
+		expected uint64
+	}{
+		{"example.txt", 525152},
+	}
 
-// 	for _, tt := range tests {
-// 		file, err := os.Open(tt.filepath)
-// 		if err != nil {
-// 			fmt.Println("Error opening file:", err)
-// 			return
-// 		}
-// 		defer file.Close()
-// 		result := partTwo(file)
-// 		if result != tt.expected {
-// 			t.Errorf("Expected: %d, got: %d, file: %s",
-// 				tt.expected, result, tt.filepath)
-// 		}
-// 	}
-// }
+	for _, tt := range tests {
+		file, err := os.Open(tt.filepath)
+		if err != nil {
+			fmt.Println("Error opening file:", err)
+			return
+		}
+		defer file.Close()
+		result := partTwo(file)
+		if result != tt.expected {
+			t.Errorf("Expected: %d, got: %d, file: %s",
+				tt.expected, result, tt.filepath)
+		}
+	}
+}
