@@ -23,18 +23,9 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
 }
 
-// Rad * Kolumn
-// Om en Cell har ett godkänt state testa båda nästa state
-// N length traversed in the string
-// K number of conditions reached
-// I did brute force for part 1 and dynamic programming for part 2. The state space is (which character you're on, which block you're on, how long your current block is)
-// Jonathan Paulson
-// Got stuck on trying to represent the state in only two dimensions uniquely.
-// index in springs, index in condition, number of consecutive blocks.
-// Also happend to see someone do it with a Map which seems easier so gonna try that first
 func partTwo(file *os.File) uint64 {
 	var sum uint64 = 0
 	var line string
@@ -107,7 +98,7 @@ func solverWithCache(springs []rune, conditions []int, fulfilled uint64, blocks 
 		return boolToInt(len(conditions) == 0)
 	}
 
-	var key string = fmt.Sprintf("%d%d%d%d", springs[0], len(springs), rune(fulfilled), rune(blocks))
+	var key string = fmt.Sprintf("%d%d%d", springs, rune(fulfilled), rune(blocks))
 	if value, ok := cache[key]; ok {
 		return value
 	}
