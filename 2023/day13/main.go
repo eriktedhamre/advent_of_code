@@ -32,62 +32,61 @@ func main() {
 // 	for scanner.Scan() {
 // 		clear(cache)
 // 		line = scanner.Text()
-		
+
 // 	}
 // 	return sum
 
 // }
 
 func partOne(file *os.File) uint64 {
-	//var sum uint64 = 0
+	var sum uint64 = 0
 	var line string
-	var grid [] string
-	
+	var grid []string
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line = scanner.Text()
-		grid = append(grid, line)
+
+		if len(line) == 0 {
+			horizontal := checkHorizontal(grid)
+
+			if horizontal == -1 {
+				sum += uint64(checkHorizontal(matrixRotate(grid)))
+			} else {
+				sum += uint64(horizontal) * 100
+			}
+
+		} else {
+			grid = append(grid, line)
+		}
 	}
 
-	// for _, row := range grid {
-	// 	for _, col := range row {
-	// 		fmt.Printf("%c", col)
-	// 	}
-	// 	fmt.Print("\n")
-	// }
+	horizontal := checkHorizontal(grid)
 
-	// starting from the middle
-	// for each row see if adjacent rows are equal
-	// if so continue one step in each direction
-	//
-	// starting from the middle
-	// for each column see if each adjavent column are equal
-	// if so continue one step in each direction
+	if horizontal == -1 {
+		sum += uint64(checkHorizontal(matrixRotate(grid)))
+	} else {
+		sum += uint64(horizontal) * 100
+	}
 
-	return uint64(checkHorizontal(grid)) * 100
+	return sum
 
 }
 
 func checkHorizontal(grid []string) int {
-	
+
 	var bottom int = len(grid) - 1
 	var top int = 0
 
-	// span_size/2 + i - 1??????
-	
 	for i := len(grid) % 2; i < bottom; i += 2 {
-		if bottom == i {
-			
-		}
 		if checkSpan(grid, bottom, i) {
-			fmt.Printf("%d, %d, %d \n", bottom, i, (bottom +1 - i)/2 + i)
-			return (bottom + 1 - i)/2 + i // big sus
+			return (bottom+1-i)/2 + i
 		}
 	}
 
-	for i := bottom - len(grid) % 2; i > 0; i-=2 {
+	for i := bottom - (len(grid) % 2); i > 0; i -= 2 {
 		if checkSpan(grid, i, top) {
-			return i/2 + i // big sus :2 electric bogaloo
+			return (i + 1) / 2
 		}
 	}
 	return -1
@@ -95,32 +94,51 @@ func checkHorizontal(grid []string) int {
 
 func checkSpan(grid []string, bottom, top int) bool {
 
-	if bottom - top == 1 {
+	if bottom-top == 1 {
 		return grid[bottom] == grid[top]
 	}
 
-	for i := 0; i < (bottom - top)/2; i++ {
-		if grid[bottom - i] != grid[top + i] {
+	for i := 0; i < (bottom-top)/2; i++ {
+		if grid[bottom-i] != grid[top+i] {
 			return false
 		}
 	}
 	return true
 }
 
-func isEqual(sOne, sTwo []rune) bool {
-	if len(sOne) != len(sTwo) {
-		return false
+// func isEqual(sOne, sTwo []rune) bool {
+// 	if len(sOne) != len(sTwo) {
+// 		return false
+// 	}
+
+// 	for i := 0; i < len(sOne); i++ {
+// 		if sOne[i] != sTwo[i] {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
+
+func matrixRotate(grid []string) []string {
+	tmp := make([][]rune, len(grid[0]))
+	result := make([]string, 0)
+	for row := range tmp {
+		tmp[row] = make([]rune, len(grid))
 	}
 
-	for i := 0; i < len(sOne); i++ {
-		if sOne[i] != sTwo[i] {
-			return false
+	for i, s := range grid {
+		for j := range s {
+			tmp[j][len(grid)-(i+1)] = rune(s[j])
 		}
 	}
-	return true
+
+	for i := range tmp {
+		result = append(result, string(tmp[i]))
+	}
+
+	return result
 }
 
 func inBound(row, col, rows, cols int) bool {
 	return row > -1 && row < rows && col > -1 && col < cols
 }
-

@@ -12,8 +12,9 @@ func Test_partOne(t *testing.T) {
 		filepath string
 		expected uint64
 	}{
-		{"example_2.txt", 400},
-		{"example_2_rev.txt", 400},
+		{"example_1.txt", 400},
+		{"example_1_rev.txt", 300},
+		{"example.txt", 405},
 	}
 
 	for _, tt := range tests {
@@ -31,42 +32,103 @@ func Test_partOne(t *testing.T) {
 	}
 }
 
-func TestCheckSpan(t *testing.T)  {
+func TestCheckSpan(t *testing.T) {
 	tests := []struct {
 		expected bool
-		top int
-		bottom int
-		grid []string
+		top      int
+		bottom   int
+		grid     []string
 	}{
 		{true, 1, 6,
-		[]string{"#...##..#",
-                 "#....#..#",
-                 "..##..###",
-                 "#####.##.",
-                 "#####.##.",
-                 "..##..###",
-                 "#....#..#",},
+			[]string{"#...##..#",
+				"#....#..#",
+				"..##..###",
+				"#####.##.",
+				"#####.##.",
+				"..##..###",
+				"#....#..#"},
 		},
-		{false, 6, 5,
+		{true, 0, 5,
 			[]string{"#....#..#",
-					 "..##..###",
-					 "#####.##.",
-					 "#####.##.",
-					 "..##..###",
-					 "#....#..#",
-					 "#...##..#",},
-			},
+				"..##..###",
+				"#####.##.",
+				"#####.##.",
+				"..##..###",
+				"#....#..#",
+				"#...##..#"},
+		},
 	}
 
 	for _, tt := range tests {
 		result := checkSpan(tt.grid, tt.bottom, tt.top)
 		if result != tt.expected {
 			t.Errorf("Expected: %t, got: %t,",
-				tt.expected, result,)
+				tt.expected, result)
+		}
+	}
+}
+func TestCheckHorizontal(t *testing.T) {
+	tests := []struct {
+		expected int
+		grid     []string
+	}{
+		{3,
+			[]string{"#....#..#",
+				"..##..###",
+				"#####.##.",
+				"#####.##.",
+				"..##..###",
+				"#....#..#",
+				"#...##..#"},
+		},
+	}
+
+	for _, tt := range tests {
+		result := checkHorizontal(tt.grid)
+		if result != tt.expected {
+			t.Errorf("Expected: %d, got: %d,",
+				tt.expected, result)
 		}
 	}
 }
 
+func TestMatrixRotate(t *testing.T) {
+	tests := []struct {
+		grid    []string
+		rotated []string
+	}{
+		{
+			[]string{"#....#..#",
+				"..##..###",
+				"#####.##.",
+				"#####.##.",
+				"..##..###",
+				"#....#..#",
+				"#...##..#"},
+
+			[]string{"##.##.#",
+				"...##..",
+				"..####.",
+				"..####.",
+				"#..##..",
+				"##....#",
+				"..####.",
+				"..####.",
+				"###..##"},
+		},
+	}
+
+	for _, tt := range tests {
+		result := matrixRotate(tt.grid)
+		for i, row := range tt.rotated {
+			for j := range row {
+				if result[i][j] != tt.rotated[i][j] {
+					t.Errorf("elem[%d][%d] mismatch", i, j)
+				}
+			}
+		}
+	}
+}
 
 // func Test_partTwo(t *testing.T) {
 
