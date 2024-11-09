@@ -6,8 +6,6 @@ import (
 	"os"
 )
 
-var cache map[string]uint64 = make(map[string]uint64)
-
 func main() {
 
 	if len(os.Args) < 2 {
@@ -48,35 +46,31 @@ func partOne(file *os.File) uint64 {
 		line = scanner.Text()
 
 		if len(line) == 0 {
-			horizontal := checkHorizontal(grid)
-
-			if horizontal == -1 {
-				sum += uint64(checkHorizontal(matrixRotate(grid)))
-			} else {
-				sum += uint64(horizontal) * 100
-			}
-
+			sum += processGrid(grid)
+			grid = grid[:0]
 		} else {
 			grid = append(grid, line)
 		}
 	}
 
-	horizontal := checkHorizontal(grid)
-
-	if horizontal == -1 {
-		sum += uint64(checkHorizontal(matrixRotate(grid)))
-	} else {
-		sum += uint64(horizontal) * 100
-	}
+	sum += processGrid(grid)
 
 	return sum
 
 }
 
+func processGrid(grid []string) uint64 {
+
+	if horizontal := checkHorizontal(grid); horizontal != -1 {
+		return uint64(horizontal) * 100
+	}
+	return uint64(checkHorizontal(matrixRotate(grid)))
+}
+
 func checkHorizontal(grid []string) int {
 
-	var bottom int = len(grid) - 1
 	var top int = 0
+	var bottom int = len(grid) - 1
 
 	for i := len(grid) % 2; i < bottom; i += 2 {
 		if checkSpan(grid, bottom, i) {
@@ -89,6 +83,7 @@ func checkHorizontal(grid []string) int {
 			return (i + 1) / 2
 		}
 	}
+
 	return -1
 }
 
@@ -98,26 +93,13 @@ func checkSpan(grid []string, bottom, top int) bool {
 		return grid[bottom] == grid[top]
 	}
 
-	for i := 0; i < (bottom-top)/2; i++ {
+	for i := 0; i < (bottom-top+1)/2; i++ {
 		if grid[bottom-i] != grid[top+i] {
 			return false
 		}
 	}
 	return true
 }
-
-// func isEqual(sOne, sTwo []rune) bool {
-// 	if len(sOne) != len(sTwo) {
-// 		return false
-// 	}
-
-// 	for i := 0; i < len(sOne); i++ {
-// 		if sOne[i] != sTwo[i] {
-// 			return false
-// 		}
-// 	}
-// 	return true
-// }
 
 func matrixRotate(grid []string) []string {
 	tmp := make([][]rune, len(grid[0]))
@@ -128,7 +110,7 @@ func matrixRotate(grid []string) []string {
 
 	for i, s := range grid {
 		for j := range s {
-			tmp[j][len(grid)-(i+1)] = rune(s[j])
+			tmp[j][i] = rune(s[j])
 		}
 	}
 
@@ -137,8 +119,4 @@ func matrixRotate(grid []string) []string {
 	}
 
 	return result
-}
-
-func inBound(row, col, rows, cols int) bool {
-	return row > -1 && row < rows && col > -1 && col < cols
 }
