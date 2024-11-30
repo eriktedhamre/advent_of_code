@@ -43,7 +43,64 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
+}
+
+func partTwo(file *os.File) uint64 {
+	var line string
+	var grid [][]rune = make([][]rune, 0)
+	var energized [][]Visited = make([][]Visited, 0)
+	var maxEnergized uint64 = 0
+	var start Light
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line = scanner.Text()
+		grid = append(grid, []rune(line))
+		energized = append(energized, make([]Visited, len(line)))
+	}
+
+	// Top row South
+	start.row = -1
+	start.dir = South
+	for i := 0; i < len(grid[0]); i++ {
+		start.col = i
+		energizeGridTwo(grid, energized, start)
+		maxEnergized = max(maxEnergized, calcEnergized(energized))
+		resetEnergized(energized)
+	}
+
+	// Left col East
+	start.col = -1
+	start.dir = East
+	for i := 0; i < len(grid); i++ {
+		start.row = i
+		energizeGridTwo(grid, energized, start)
+		maxEnergized = max(maxEnergized, calcEnergized(energized))
+		resetEnergized(energized)
+	}
+
+	// Right col West
+	start.col = len(grid[0])
+	start.dir = West
+	for i := 0; i < len(grid); i++ {
+		start.row = i
+		energizeGridTwo(grid, energized, start)
+		maxEnergized = max(maxEnergized, calcEnergized(energized))
+		resetEnergized(energized)
+	}
+
+	// Bottom row North
+	start.row = len(grid)
+	start.dir = North
+	for i := 0; i < len(grid[0]); i++ {
+		start.col = i
+		energizeGridTwo(grid, energized, start)
+		maxEnergized = max(maxEnergized, calcEnergized(energized))
+		resetEnergized(energized)
+	}
+
+	return maxEnergized
 }
 
 func partOne(file *os.File) uint64 {
@@ -63,6 +120,99 @@ func partOne(file *os.File) uint64 {
 	return calcEnergized(energized)
 }
 
+func energizeGridTwo(grid [][]rune, energized [][]Visited, start Light) {
+
+	var lights []Light = make([]Light, 0)
+	var light Light
+	var mod DirMod
+	// unsure if -1 is necessary
+	lights = append(lights, start)
+	var newRow int
+	var newCol int
+
+	for len(lights) > 0 {
+		light = lights[len(lights)-1]
+		lights = lights[:len(lights)-1]
+		mod = dirMods[light.dir]
+		newRow = light.row + mod.rowwMod
+		newCol = light.col + mod.colMod
+		if !inBound(newRow, newCol, len(grid), len(grid[0])) {
+			continue
+		} else {
+			light.row = newRow
+			light.col = newCol
+			switch grid[newRow][newCol] {
+			case '.':
+			case '/':
+				switch light.dir {
+				case North:
+					light.dir = East
+				case East:
+					light.dir = North
+				case South:
+					light.dir = West
+				case West:
+					light.dir = South
+				}
+			case '\\':
+				switch light.dir {
+				case North:
+					light.dir = West
+				case East:
+					light.dir = South
+				case South:
+					light.dir = East
+				case West:
+					light.dir = North
+				}
+			case '|':
+				switch light.dir {
+				case East:
+					fallthrough
+				case West:
+					light.dir = North
+					lightSplit := Light{row: newRow, col: newCol, dir: South}
+					if !visited(energized, newRow, newCol, South) {
+						lights = append(lights, lightSplit)
+					}
+					energized[newRow][newCol].South = true
+				case North:
+				case South:
+				}
+			case '-':
+				switch light.dir {
+				case North:
+					fallthrough
+				case South:
+					light.dir = East
+					lightSplit := Light{row: newRow, col: newCol, dir: West}
+					if !visited(energized, newRow, newCol, West) {
+						lights = append(lights, lightSplit)
+					}
+					energized[newRow][newCol].West = true
+				case East:
+				case West:
+				}
+
+			}
+			if !visited(energized, newRow, newCol, light.dir) {
+				lights = append(lights, light)
+				switch light.dir {
+				case North:
+					energized[newRow][newCol].North = true
+				case South:
+					energized[newRow][newCol].South = true
+				case East:
+					energized[newRow][newCol].East = true
+				case West:
+					energized[newRow][newCol].West = true
+				}
+			}
+		}
+
+	}
+}
+
 func energizeGrid(grid [][]rune, energized [][]Visited) {
 
 	var lights []Light = make([]Light, 0)
@@ -79,10 +229,6 @@ func energizeGrid(grid [][]rune, energized [][]Visited) {
 		mod = dirMods[light.dir]
 		newRow = light.row + mod.rowwMod
 		newCol = light.col + mod.colMod
-		// Vi vill bara lägga till en nod i kön om vi inte har varit där
-		//
-		//
-		//
 		if !inBound(newRow, newCol, len(grid), len(grid[0])) {
 			continue
 		} else {
@@ -185,6 +331,17 @@ func calcEnergized(energized [][]Visited) uint64 {
 		}
 	}
 	return sum
+}
+
+func resetEnergized(energized [][]Visited) {
+	for i := 0; i < len(energized); i++ {
+		for j := 0; j < len(energized[0]); j++ {
+			energized[i][j].North = false
+			energized[i][j].South = false
+			energized[i][j].East = false
+			energized[i][j].West = false
+		}
+	}
 }
 
 func inBound(row, col, rows, cols int) bool {
