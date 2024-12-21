@@ -23,7 +23,7 @@ type DirMod struct {
 
 var dirMods = []DirMod{{-1, 0}, {0, 1}, {1, 0}, {0, -1}}
 
-type Item struct {
+type Crucible struct {
 	row, col         int
 	consecutiveMoves int
 	origin           Direction
@@ -66,7 +66,7 @@ func partOne(file *os.File) uint64 {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line = scanner.Text()
-		lineSlice, err := stringToIntSlice(line)
+		lineSlice, err := utils.StringToIntSlice(line)
 		if err != nil {
 			fmt.Print(err)
 			panic(err)
@@ -78,24 +78,9 @@ func partOne(file *os.File) uint64 {
 }
 
 func searchGrid(grid [][]int) {
-	pq := make(utils.PriorityQueue[Item], 0)
+	pq := make(utils.PriorityQueue[utils.Item[Crucible]], 0)
 	pq.Init()
 
-	pq.Push(Item{row: 0, col: 0, consecutiveMoves: 0, origin: Up})
+	pq.Push(utils.Item[Crucible]{Value: Crucible{row: 0, col: 0, consecutiveMoves: 0, origin: Up}, Priority: 0})
 
-}
-
-func stringToIntSlice(input string) ([]int, error) {
-	var result []int
-	for _, c := range input {
-		if c < '0' || c > '9' {
-			return nil, fmt.Errorf("Non digit character in string: %q", c)
-		}
-		result = append(result, int(c-'0'))
-	}
-	return result, nil
-}
-
-func inBound(row, col, rows, cols int) bool {
-	return row > -1 && row < rows && col > -1 && col < cols
 }
