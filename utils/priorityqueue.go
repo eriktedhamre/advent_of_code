@@ -22,7 +22,7 @@ func (pq PriorityQueue[T]) Len() int { return len(pq) }
 
 func (pq PriorityQueue[T]) Less(i, j int) bool {
 	// MIN heap
-	return pq[i].priority < pq[j].priority
+	return pq[i].Priority < pq[j].Priority
 	// MAX heap
 	// return pq[i].priority > pq[j].priority
 }
