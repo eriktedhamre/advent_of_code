@@ -11,8 +11,13 @@ const (
 	Left
 )
 
+type Coordinates struct {
+	Row, Col int
+}
+
 type Crucible struct {
 	Row, Col         int
 	ConsecutiveMoves int
 	Direction        Direction
+	Parents          []Coordinates
 }
