@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"container/heap"
 	"fmt"
-	"math"
 	"os"
 
 	"github.com/eriktedhamre/advent_of_code/types"
@@ -42,7 +41,7 @@ var ForwardMap = map[types.Direction]DirMod{
 	types.Right: RightMod,
 }
 
-var InQueue = make(map[string]bool, 0)
+var bestCost = make(map[string]int, 0)
 
 func main() {
 
@@ -66,18 +65,11 @@ func main() {
 // consecutive moves
 // origin
 
-// I will try large grid search with cache again....
-// If accumulated heat in the new positions is higher than the current one
-// and the other stats are the same/worse do not add it
-
-// Or are we supposed to do a recursive solution
-
 // Priority queue on heat??
 
 func partOne(file *os.File) int {
 	var line string
 	var grid [][]int = make([][]int, 0)
-	var cost [][]int
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -90,20 +82,12 @@ func partOne(file *os.File) int {
 		grid = append(grid, lineSlice)
 	}
 
-	cost = make([][]int, len(grid))
-	cols := len(grid[0])
-
-	for i := range cost {
-		cost[i] = make([]int, cols)
-		for j := range cost[i] {
-			cost[i][j] = math.MaxInt32
-		}
-	}
-
-	return searchGrid(grid, cost)
+	return searchGrid(grid)
 }
 
-func searchGrid(grid [][]int, cost [][]int) int {
+// func searchGrid(grid [][]int, cost [][]int) int {
+func searchGrid(grid [][]int) int {
+
 	//var curItem utils.Item[Crucible]
 	var newConsec int
 	var lowestHeat int
@@ -121,7 +105,7 @@ func searchGrid(grid [][]int, cost [][]int) int {
 		},
 		Priority: 0})
 
-	InQueue[fmt.Sprintf("%d%d%d%d%d", 0, 0, 0, int(types.Down), 0)] = true
+	bestCost[fmt.Sprintf("%d,%d,%d,%d", 0, 0, 0, int(types.Down))] = 0
 
 DONE:
 	for {
@@ -129,16 +113,16 @@ DONE:
 		curItem, ok := heap.Pop(&pq).(*utils.Item[types.Crucible])
 		//fmt.Println(curItem.Priority)
 		if !ok {
-			fmt.Printf("type conversion failed for curItem : got %T\n", pq.Pop())
+			fmt.Printf("type conversion failed for curItem : got %T\n", curItem)
 			panic(nil)
 		}
 
-		if curItem.Value.Row == (len(cost)-1) && curItem.Value.Col == (len(grid[0])-1) {
+		if curItem.Value.Row == (len(grid)-1) && curItem.Value.Col == (len(grid[0])-1) {
 			lowestHeat = curItem.Priority
 			//best = curItem
 			break DONE
 		}
-		newIndicies := calculateNewPosSlice(curItem, len(cost), len(cost[0]))
+		newIndicies := calculateNewPosSlice(curItem, len(grid), len(grid[0]))
 		for _, v := range newIndicies {
 			// We are moving forward, not cash money solution
 			if v.dir == curItem.Value.Direction {
@@ -148,43 +132,28 @@ DONE:
 			}
 			//newDir = calcNewDir(curItem.Value.Direction, i)
 
-			key := fmt.Sprintf("%d%d%d%d%d", v.row, v.col, newConsec, v.dir, curItem.Priority+grid[v.row][v.col])
-
-			if _, exists := InQueue[key]; exists {
-				// Item is already in the queue
-				continue
-			}
+			key := fmt.Sprintf("%d,%d,%d,%d", v.row, v.col, newConsec, v.dir)
+			newCost := curItem.Priority + grid[v.row][v.col]
 
 			// newParents := deepCopy(curItem.Value.Parents)
 			// newParents = append(newParents, types.Coordinates{Row: v.row, Col: v.col})
 
-			// if currentHeat + cost is lower than the previous cost add it to priority queue
-			// Can this destroy the best solution by locking us out of it?
-			// Don't think so, it is possible that we should simply add everything to the queue
-			// I'm adding everything :)
-			heap.Push(&pq, &utils.Item[types.Crucible]{
-				Value: types.Crucible{
-					Row:              v.row,
-					Col:              v.col,
-					ConsecutiveMoves: newConsec,
-					Direction:        v.dir,
-					//Parents:          newParents,
-				},
-				Priority: curItem.Priority + grid[v.row][v.col],
-			})
-			InQueue[key] = true
+			if prevCost, exists := bestCost[key]; !exists || (newCost < prevCost) {
+				bestCost[key] = newCost
+				heap.Push(&pq, &utils.Item[types.Crucible]{
+					Value: types.Crucible{
+						Row:              v.row,
+						Col:              v.col,
+						ConsecutiveMoves: newConsec,
+						Direction:        v.dir,
+						//Parents:          newParents,
+					},
+					Priority: newCost,
+				})
+			}
+
 		}
 	}
-
-	// for _, v := range best.Value.Parents {
-	// 	grid[v.Row][v.Col] = 0
-	// }
-	// for i, row := range grid {
-	// 	for j := range row {
-	// 		fmt.Print(grid[i][j])
-	// 	}
-	// 	fmt.Print("\n")
-	// }
 
 	return lowestHeat
 }
@@ -215,31 +184,56 @@ func calculateNewPosSlice(current *utils.Item[types.Crucible], rows, cols int) [
 	return res
 }
 
-func calcNewDir(dir types.Direction, index int) types.Direction {
-	var res types.Direction
-	switch {
-	case index == 2:
-		res = dir
-	// Left or Up
-	case index == 0:
-		if dir == types.Up || dir == types.Down {
-			res = types.Left
-		} else {
-			res = types.Up
-		}
-	// Right or Down
-	case index == 1:
-		if dir == types.Up || dir == types.Down {
-			res = types.Right
-		} else {
-			res = types.Down
-		}
-	}
-	return res
-}
+// func calcNewDir(dir types.Direction, index int) types.Direction {
+// 	var res types.Direction
+// 	switch {
+// 	case index == 2:
+// 		res = dir
+// 	// Left or Up
+// 	case index == 0:
+// 		if dir == types.Up || dir == types.Down {
+// 			res = types.Left
+// 		} else {
+// 			res = types.Up
+// 		}
+// 	// Right or Down
+// 	case index == 1:
+// 		if dir == types.Up || dir == types.Down {
+// 			res = types.Right
+// 		} else {
+// 			res = types.Down
+// 		}
+// 	}
+// 	return res
+// }
 
-func deepCopy(parents []types.Coordinates) []types.Coordinates {
-	newParents := make([]types.Coordinates, len(parents))
-	copy(newParents, parents)
-	return newParents
-}
+// func deepCopy(parents []types.Coordinates) []types.Coordinates {
+// 	newParents := make([]types.Coordinates, len(parents))
+// 	copy(newParents, parents)
+// 	return newParents
+// }
+
+// if currentHeat + cost is lower than the previous cost add it to priority queue
+// Can this destroy the best solution by locking us out of it?
+// Don't think so, it is possible that we should simply add everything to the queue
+// I'm adding everything :)
+
+// for _, v := range best.Value.Parents {
+// 	grid[v.Row][v.Col] = 0
+// }
+// for i, row := range grid {
+// 	for j := range row {
+// 		fmt.Print(grid[i][j])
+// 	}
+// 	fmt.Print("\n")
+// }
+
+// cost = make([][]int, len(grid))
+// cols := len(grid[0])
+
+// for i := range cost {
+// 	cost[i] = make([]int, cols)
+// 	for j := range cost[i] {
+// 		cost[i][j] = math.MaxInt32
+// 	}
+// }
