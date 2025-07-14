@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/eriktedhamre/advent_of_code/types"
+	"github.com/eriktedhamre/advent_of_code/utils"
 )
 
 type instruction struct {
@@ -31,7 +33,7 @@ func main() {
 	fmt.Print(partOne(file))
 }
 
-func partOne(file *os.File) int {
+func partOne(file *os.File) uint64 {
 	var line string
 	var splits []string
 	//var instructions []instruction = make([]instruction, 0)
@@ -60,11 +62,111 @@ func partOne(file *os.File) int {
 		}
 		points = append(points, types.Coordinates{Row: current.Row, Col: current.Col})
 	}
-	// points = points[:len(points)-1] // not sure if needed
+	points = points[:len(points)-1] // not sure if needed
 	for _, v := range points {
 		fmt.Printf("(%d, %d)\n", v.Row, v.Col)
 	}
-	return 0
+	printGrid(points)
+	return uint64(utils.AreaOfAPolygon(points))
+}
+
+func printGrid(points []types.Coordinates) {
+	var maxCol int = math.MinInt
+	var maxRow int = math.MinInt
+	var minCol int = math.MaxInt
+	var minRow int = math.MaxInt
+
+	for i := range len(points) - 1 {
+		if maxCol < points[i].Col {
+			maxCol = points[i].Col
+		}
+		if maxRow < points[i].Row {
+			maxRow = points[i].Row
+		}
+		if minCol > points[i].Col {
+			minCol = points[i].Col
+		}
+		if minRow > points[i].Row {
+			minRow = points[i].Row
+		}
+	}
+
+	fmt.Println("I got so far")
+
+	var rowOffset = 0
+	if minRow < 0 {
+		rowOffset = int(math.Abs(float64(minRow)))
+	}
+	var colOffset = 0
+	if minCol < 0 {
+		colOffset = int(math.Abs(float64(minCol)))
+	}
+
+	var grid [][]rune = make([][]rune, maxRow+rowOffset)
+	for i := range maxRow + rowOffset {
+		grid[i] = make([]rune, maxCol+colOffset)
+	}
+
+	for row := 0; row < maxRow+rowOffset; row++ {
+		for col := 0; col < maxCol+colOffset; col++ {
+			grid[row][col] = '.'
+		}
+	}
+
+	fmt.Println("but in the end")
+
+	for i := 0; i < len(points)-1; i++ {
+		drawLine(&points[i], &points[i+1], grid, rowOffset, colOffset)
+	}
+	drawLine(&points[len(points)-1], &points[0], grid, rowOffset, colOffset)
+
+	for row := 0; row < maxRow+rowOffset; row++ {
+		fmt.Println(grid[row])
+	}
+
+}
+
+func drawLine(start, end *types.Coordinates, grid [][]rune, rowOffset, colOffset int) {
+	var rowDiff int = 0
+	var colDiff int = 0
+	var modifier int = 1
+
+	grid[start.Row+rowOffset][start.Col+colOffset] = '#'
+	rowDiff = 0
+	colDiff = 0
+	modifier = 1
+
+	// Could do a combined calculation here :)
+	rowDiff = start.Row - end.Row
+	if rowDiff != 0 {
+		// Step Row Direction
+		if rowDiff > 0 {
+			// New Row value is lower step with -1
+			modifier = -1
+		} else {
+			// New Row value is higher step with 1
+			modifier = 1
+		}
+		for i := 0; i < int(math.Abs(float64(rowDiff))); i++ {
+			grid[start.Row+rowOffset+modifier][start.Col+colOffset] = '#'
+			modifier += modifier
+		}
+	} else {
+		// Step Col Direction
+		colDiff = start.Col - end.Col
+		if colDiff > 0 {
+			// new Col value is lower step with -1
+			modifier = -1
+		} else {
+			// new Col value is higher step with 1
+			modifier = 1
+		}
+		for i := 0; i < int(math.Abs(float64(colDiff))); i++ {
+			grid[start.Row+rowOffset][start.Col+colOffset+modifier] = '#'
+			modifier += modifier
+		}
+	}
+
 }
 
 // func partTwo(file *os.File) int {

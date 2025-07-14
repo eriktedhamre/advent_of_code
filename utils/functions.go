@@ -1,6 +1,11 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+
+	"github.com/eriktedhamre/advent_of_code/types"
+)
 
 func StringToIntSlice(input string) ([]int, error) {
 	var result []int
@@ -92,4 +97,15 @@ func NaiveGCD(a uint64, b uint64) uint64 {
 
 func NaiveLCM(a uint64, b uint64) uint64 {
 	return (a * b) / NaiveGCD(a, b)
+}
+
+func AreaOfAPolygon(vertices []types.Coordinates) int64 {
+	var res int64 = 0
+	for i := range len(vertices) - 1 {
+		res += int64(vertices[i].Row)*int64(vertices[i+1].Col) -
+			int64(vertices[i+1].Row)*int64(vertices[i].Col)
+	}
+	res += int64(vertices[len(vertices)-1].Row)*int64(vertices[0].Col) -
+		int64(vertices[0].Row)*int64(vertices[len(vertices)-1].Col)
+	return int64(math.Abs(float64(res)) / 2)
 }
