@@ -9,13 +9,7 @@ import (
 	"strings"
 
 	"github.com/eriktedhamre/advent_of_code/types"
-	"github.com/eriktedhamre/advent_of_code/utils"
 )
-
-type instruction struct {
-	dir  types.Direction
-	dist uint
-}
 
 func main() {
 
@@ -36,6 +30,7 @@ func main() {
 func partOne(file *os.File) uint64 {
 	var line string
 	var splits []string
+	var grid [][]rune
 	//var instructions []instruction = make([]instruction, 0)
 	var points []types.Coordinates = make([]types.Coordinates, 0)
 	var current types.Coordinates = types.Coordinates{Row: 0, Col: 0}
@@ -63,14 +58,18 @@ func partOne(file *os.File) uint64 {
 		points = append(points, types.Coordinates{Row: current.Row, Col: current.Col})
 	}
 	points = points[:len(points)-1] // not sure if needed
-	for _, v := range points {
-		fmt.Printf("(%d, %d)\n", v.Row, v.Col)
-	}
-	printGrid(points)
-	return uint64(utils.AreaOfAPolygon(points))
+
+	// for _, v := range points {
+	// 	fmt.Printf("(%d, %d)\n", v.Row, v.Col)
+	// }
+
+	grid = createGrid(points)
+	//printGrid(grid)
+	uncoveredArea := floodFillOutside(grid, '.', '~')
+	return uint64(len(grid))*uint64(len(grid[0])) - uncoveredArea
 }
 
-func printGrid(points []types.Coordinates) {
+func createGrid(points []types.Coordinates) [][]rune {
 	var maxCol int = math.MinInt
 	var maxRow int = math.MinInt
 	var minCol int = math.MaxInt
@@ -91,8 +90,6 @@ func printGrid(points []types.Coordinates) {
 		}
 	}
 
-	fmt.Println("I got so far")
-
 	var rowOffset = 0
 	if minRow < 0 {
 		rowOffset = int(math.Abs(float64(minRow)))
@@ -102,39 +99,84 @@ func printGrid(points []types.Coordinates) {
 		colOffset = int(math.Abs(float64(minCol)))
 	}
 
-	var grid [][]rune = make([][]rune, maxRow+rowOffset)
-	for i := range maxRow + rowOffset {
-		grid[i] = make([]rune, maxCol+colOffset)
+	var grid [][]rune = make([][]rune, maxRow+rowOffset+1)
+	for i := range maxRow + rowOffset + 1 {
+		grid[i] = make([]rune, maxCol+colOffset+1)
 	}
 
-	for row := 0; row < maxRow+rowOffset; row++ {
-		for col := 0; col < maxCol+colOffset; col++ {
+	for row := 0; row < maxRow+rowOffset+1; row++ {
+		for col := 0; col < maxCol+colOffset+1; col++ {
 			grid[row][col] = '.'
 		}
 	}
-
-	fmt.Println("but in the end")
 
 	for i := 0; i < len(points)-1; i++ {
 		drawLine(&points[i], &points[i+1], grid, rowOffset, colOffset)
 	}
 	drawLine(&points[len(points)-1], &points[0], grid, rowOffset, colOffset)
 
-	for row := 0; row < maxRow+rowOffset; row++ {
-		fmt.Println(grid[row])
+	return grid
+}
+
+// Flood-fill from all '.' cells connected to the grid edges
+func floodFillOutside(grid [][]rune, target rune, marker rune) uint64 {
+	rows := len(grid)
+	cols := len(grid[0])
+	directions := []types.Coordinates{{Row: -1, Col: 0}, {Row: 1, Col: 0}, {Row: 0, Col: -1}, {Row: 0, Col: 1}}
+
+	queue := []types.Coordinates{}
+
+	// Start from borders
+	for r := 0; r < rows; r++ {
+		if grid[r][0] == target {
+			queue = append(queue, types.Coordinates{Row: r, Col: 0})
+		}
+		if grid[r][cols-1] == target {
+			queue = append(queue, types.Coordinates{Row: r, Col: cols - 1})
+		}
+	}
+	for c := 0; c < cols; c++ {
+		if grid[0][c] == target {
+			queue = append(queue, types.Coordinates{Row: 0, Col: c})
+		}
+		if grid[rows-1][c] == target {
+			queue = append(queue, types.Coordinates{Row: rows - 1, Col: c})
+		}
 	}
 
+	var cellsFilled uint64 = 0
+	// Flood all edge-connected '.'
+	for len(queue) > 0 {
+		p := queue[0]
+		queue = queue[1:]
+
+		if grid[p.Row][p.Col] != target {
+			continue
+		}
+
+		grid[p.Row][p.Col] = marker
+		cellsFilled++
+
+		for _, d := range directions {
+			nr := p.Row + d.Row
+			nc := p.Col + d.Col
+			if nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] == target {
+				queue = append(queue, types.Coordinates{Row: nr, Col: nc})
+			}
+		}
+	}
+	return cellsFilled
 }
 
 func drawLine(start, end *types.Coordinates, grid [][]rune, rowOffset, colOffset int) {
 	var rowDiff int = 0
 	var colDiff int = 0
-	var modifier int = 1
+	var modifier int = 0
+	var modifier_step int = 1
 
-	grid[start.Row+rowOffset][start.Col+colOffset] = '#'
 	rowDiff = 0
 	colDiff = 0
-	modifier = 1
+	modifier = 0
 
 	// Could do a combined calculation here :)
 	rowDiff = start.Row - end.Row
@@ -142,31 +184,37 @@ func drawLine(start, end *types.Coordinates, grid [][]rune, rowOffset, colOffset
 		// Step Row Direction
 		if rowDiff > 0 {
 			// New Row value is lower step with -1
-			modifier = -1
+			modifier_step = -1
 		} else {
 			// New Row value is higher step with 1
-			modifier = 1
+			modifier_step = 1
 		}
-		for i := 0; i < int(math.Abs(float64(rowDiff))); i++ {
+		for i := 0; i <= int(math.Abs(float64(rowDiff))); i++ {
 			grid[start.Row+rowOffset+modifier][start.Col+colOffset] = '#'
-			modifier += modifier
+			modifier += modifier_step
 		}
 	} else {
 		// Step Col Direction
 		colDiff = start.Col - end.Col
 		if colDiff > 0 {
 			// new Col value is lower step with -1
-			modifier = -1
+			modifier_step = -1
 		} else {
 			// new Col value is higher step with 1
-			modifier = 1
+			modifier_step = 1
 		}
-		for i := 0; i < int(math.Abs(float64(colDiff))); i++ {
+		for i := 0; i <= int(math.Abs(float64(colDiff))); i++ {
 			grid[start.Row+rowOffset][start.Col+colOffset+modifier] = '#'
-			modifier += modifier
+			modifier += modifier_step
 		}
 	}
 
+}
+
+func printGrid(grid [][]rune) {
+	for i := len(grid) - 1; i >= 0; i-- {
+		fmt.Println(string(grid[i]))
+	}
 }
 
 // func partTwo(file *os.File) int {
