@@ -122,7 +122,7 @@ DONE:
 			panic(nil)
 		}
 
-		if curItem.Value.Row == (len(grid)-1) && curItem.Value.Col == (len(grid[0])-1) {
+		if curItem.Value.Row == int64((len(grid)-1)) && curItem.Value.Col == int64((len(grid[0])-1)) {
 			lowestHeat = curItem.Priority
 			break DONE
 		}
@@ -142,8 +142,8 @@ DONE:
 				bestCost[key] = newCost
 				heap.Push(&pq, &utils.Item[types.Crucible]{
 					Value: types.Crucible{
-						Row:              v.row,
-						Col:              v.col,
+						Row:              int64(v.row),
+						Col:              int64(v.col),
 						ConsecutiveMoves: newConsec,
 						Direction:        v.dir,
 					},
@@ -194,8 +194,8 @@ DONE:
 		}
 
 		// We need to have atleast 4 consecutive moves to stop
-		if curItem.Value.Row == (len(grid)-1) &&
-			curItem.Value.Col == (len(grid[0])-1) &&
+		if curItem.Value.Row == int64(len(grid)-1) &&
+			curItem.Value.Col == int64(len(grid[0])-1) &&
 			curItem.Value.ConsecutiveMoves > 3 {
 			lowestHeat = curItem.Priority
 			break DONE
@@ -216,8 +216,8 @@ DONE:
 				bestCost[key] = newCost
 				heap.Push(&pq, &utils.Item[types.Crucible]{
 					Value: types.Crucible{
-						Row:              v.row,
-						Col:              v.col,
+						Row:              int64(v.row),
+						Col:              int64(v.col),
 						ConsecutiveMoves: newConsec,
 						Direction:        v.dir,
 					},
@@ -247,8 +247,8 @@ func calculateNewPosSlice(current *utils.Item[types.Crucible], rows, cols int) [
 	}
 
 	for _, v := range mods {
-		newRow = current.Value.Row + v.rowMod
-		newCol = current.Value.Col + v.colMod
+		newRow = int(current.Value.Row) + v.rowMod
+		newCol = int(current.Value.Col) + v.colMod
 		if utils.InBound(newRow, newCol, rows, cols) {
 			res = append(res, Pos{newRow, newCol, v.dir})
 		}
@@ -275,8 +275,8 @@ func calculateNewPosSlice2(current *utils.Item[types.Crucible], rows, cols int) 
 	}
 
 	for _, v := range mods {
-		newRow = current.Value.Row + v.rowMod
-		newCol = current.Value.Col + v.colMod
+		newRow = int(current.Value.Row) + v.rowMod
+		newCol = int(current.Value.Col) + v.colMod
 		if utils.InBound(newRow, newCol, rows, cols) {
 			res = append(res, Pos{newRow, newCol, v.dir})
 		}

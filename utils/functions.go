@@ -99,13 +99,19 @@ func NaiveLCM(a uint64, b uint64) uint64 {
 	return (a * b) / NaiveGCD(a, b)
 }
 
-func AreaOfAPolygon(vertices []types.Coordinates) int64 {
-	var res int64 = 0
-	for i := range len(vertices) - 1 {
-		res += int64(vertices[i].Row)*int64(vertices[i+1].Col) -
-			int64(vertices[i+1].Row)*int64(vertices[i].Col)
+func AreaOfAPolygon(vertices []types.Coordinates) float64 {
+	n := len(vertices)
+	if n < 3 {
+		return 0 // Not a valid polygon
 	}
-	res += int64(vertices[len(vertices)-1].Row)*int64(vertices[0].Col) -
-		int64(vertices[0].Row)*int64(vertices[len(vertices)-1].Col)
-	return int64(math.Abs(float64(res)) / 2)
+
+	var res float64 = 0
+	for i := 0; i < n-1; i++ {
+		res += float64(vertices[i].Row)*float64(vertices[i+1].Col) -
+			float64(vertices[i+1].Row)*float64(vertices[i].Col)
+	}
+	res += float64(vertices[n-1].Row)*float64(vertices[0].Col) -
+		float64(vertices[0].Row)*float64(vertices[n-1].Col)
+
+	return math.Abs(float64(res)) / 2
 }
