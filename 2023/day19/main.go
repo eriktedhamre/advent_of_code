@@ -37,6 +37,18 @@ type partRating struct {
 	xValue, mValue, aValue, sValue uint64
 }
 
+type partLimits struct {
+	max partRating
+	min partRating
+}
+
+// Start with partLimits 1...4000
+// Whenever we make a choice create a branching partLimits
+// If we reach the same node with the same part limit we have hit a loop and consider these "R"
+// If we reach an A return the passing part limit
+// How do we calculate overlap between passing part limits?
+// Can we have overlap between passing part limits?
+
 // If there's cycles again, I'm gonna be so mad :)
 //
 //
