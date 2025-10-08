@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/eriktedhamre/advent_of_code/utils"
 )
 
 type axis int
@@ -38,8 +40,9 @@ type partRating struct {
 }
 
 type partLimits struct {
-	max partRating
-	min partRating
+	dest string
+	max  partRating
+	min  partRating
 }
 
 // Start with partLimits 1...4000
@@ -118,6 +121,107 @@ func partOne(file *os.File) uint64 {
 	return sum
 }
 
+func partTwo(file *os.File) uint64 {
+	var workflows = make(map[string][]constraint, 0)
+	var line string
+
+	scanner := bufio.NewScanner(file)
+	// Read Workflows
+	for scanner.Scan() {
+		line = scanner.Text()
+		if line == "" {
+			break
+		}
+
+		readWorkflow(line, workflows)
+	}
+
+	initialPart := partLimits{dest: "in", max: partRating{xValue: 4000, mValue: 4000, aValue: 4000, sValue: 4000},
+		min: partRating{xValue: 0, mValue: 0, aValue: 0, sValue: 0}}
+
+	// I will try without cycle detection first
+	// With cycle detection I probably need something like this
+	// map[string]bool visited
+	// and reset whenever I change the current partLimit
+	// that's a lot of resets :/
+
+	acceptedParts := make([]partLimits, 0)
+
+	partQueue := &utils.Queue[partLimits]{}
+	partQueue.Enqueue(initialPart)
+
+	var currentPart partLimits
+	var currentWorkflow []constraint
+	var ok bool
+	var fieldToModify *uint64
+
+DONE:
+	for {
+		if partQueue.Len() == 0 {
+			break DONE
+		}
+		currentPart, ok = partQueue.Dequeue()
+
+		if !ok {
+			log.Fatalf("partQueue.Dequeue() failed")
+		}
+
+		currentWorkflow = workflows[currentPart.dest]
+
+		// cmpr my current part to each value
+		// If we do not match
+		// For each comparator create both cases
+		// continue until spent, whenever we hit an A save it in acceptedParts
+		// Whenever we hit an R throw it away
+	WORKFLOW:
+		for _, c := range currentWorkflow {
+			switch c.ax {
+			case x:
+				if c.op == greater {
+					// Early abort
+					if c.limit > currentPart.max.xValue {
+						continue
+					}
+					// Create possible parts
+					// New part that matches condition
+					// Raise min
+
+					newPartKeep := partLimits{dest: currentPart.dest, max: currentPart.max, min: currentPart.min}
+					newPartKeep.min.xValue = c.limit + 1
+
+					// New part that fails condition
+					// Lower max
+					newPartEnqueue := partLimits{dest: currentPart.dest, max: currentPart.max, min: currentPart.min}
+					newPartEnqueue.max.xValue = c.limit
+				} else {
+					// c.op == lesser
+					if c.limit < currentPart.min.xValue {
+						continue
+					}
+					// Lower min
+					// Raise max
+
+				}
+
+			case m:
+			case a:
+			case s:
+			case none:
+				if c.dest == "A" {
+					acceptedParts = append(acceptedParts, currentPart)
+				} else if c.dest != "R" {
+					break WORKFLOW
+				} else {
+					currentPart.dest = c.dest
+					partQueue.Enqueue(currentPart)
+				}
+			}
+		}
+
+	}
+
+	return 0
+}
 func findDest(part partRating, constraints []constraint) string {
 	dest := ""
 	var limit uint64 = 0
