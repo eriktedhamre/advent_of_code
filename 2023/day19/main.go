@@ -49,12 +49,6 @@ type partLimits struct {
 // Whenever we make a choice create a branching partLimits
 // If we reach the same node with the same part limit we have hit a loop and consider these "R"
 // If we reach an A return the passing part limit
-// How do we calculate overlap between passing part limits?
-// Can we have overlap between passing part limits?
-
-// If there's cycles again, I'm gonna be so mad :)
-//
-//
 
 func main() {
 
@@ -88,16 +82,10 @@ func partOne(file *os.File) uint64 {
 		readWorkflow(line, workflows)
 	}
 
-	//fmt.Println(workflows)
-
-	// If number of iterations for a part is larger than the number of parts abort
-
 	for scanner.Scan() {
 		line = scanner.Text()
 		parts = append(parts, readPart(line))
 	}
-
-	//fmt.Println(parts)
 
 	var sum uint64 = 0
 
@@ -139,12 +127,6 @@ func partTwo(file *os.File) uint64 {
 	initialPart := partLimits{dest: "in", max: partRating{xValue: 4000, mValue: 4000, aValue: 4000, sValue: 4000},
 		min: partRating{xValue: 1, mValue: 1, aValue: 1, sValue: 1}}
 
-	// I will try without cycle detection first
-	// With cycle detection I probably need something like this
-	// map[string]bool visited
-	// and reset whenever I change the current partLimit
-	// that's a lot of resets :/
-
 	acceptedParts := make([]partLimits, 0)
 
 	partQueue := &utils.Queue[partLimits]{}
@@ -160,7 +142,6 @@ DONE:
 			break DONE
 		}
 		currentPart, ok = partQueue.Dequeue()
-		//fmt.Print(currentPart)
 
 		if !ok {
 			log.Fatalf("partQueue.Dequeue() failed")
@@ -177,197 +158,55 @@ DONE:
 		for _, c := range currentWorkflow {
 			newPartEnqueue := partLimits{dest: c.dest, max: currentPart.max, min: currentPart.min}
 			newPartKeep := partLimits{dest: currentPart.dest, max: currentPart.max, min: currentPart.min}
-			switch c.ax {
-			case x:
-				// x>2440:R
-				if c.op == greater {
-					// Early abort
-					// Not sure about this
-					if c.limit >= currentPart.max.xValue {
-						continue
-					}
-					// Create possible parts
-					// New part that matches condition
-					// Raise min
-					// Enqueu with new destination
 
-					newPartEnqueue.min.xValue = c.limit + 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-					// New part that fails condition
-					// Lower max
-					// Replace current part with this
-					// Look at next constraint
-
-					newPartKeep.max.xValue = c.limit
-					currentPart = newPartKeep
-				} else {
-					// x<2440:R
-					// c.op == lesser
-					// Early abort
-					if c.limit <= currentPart.min.xValue {
-						continue
-					}
-					// Create possible parts
-					// New part that matches condition
-					// Lower max
-					// Enqueue with new destination
-
-					newPartEnqueue.max.xValue = c.limit - 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-
-					// New part that fails condition
-					// Raise min
-					// Replace current part with this
-					// Look at next constraint
-					newPartKeep.min.xValue = c.limit
-					currentPart = newPartKeep
-				}
-
-			case m:
-				// m>2440:R
-				if c.op == greater {
-					if c.limit >= currentPart.max.mValue {
-						continue
-					}
-
-					newPartEnqueue.min.mValue = c.limit + 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-
-					newPartKeep.max.mValue = c.limit
-					currentPart = newPartKeep
-				} else {
-					// m<2440:R
-					if c.limit <= currentPart.min.mValue {
-						continue
-					}
-
-					newPartEnqueue.max.mValue = c.limit - 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-
-					newPartKeep.min.mValue = c.limit
-					currentPart = newPartKeep
-				}
-			case a:
-				// x>2440:R
-				if c.op == greater {
-
-					if c.limit >= currentPart.max.aValue {
-						continue
-					}
-
-					newPartEnqueue.min.aValue = c.limit + 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-
-					newPartKeep.max.aValue = c.limit
-					currentPart = newPartKeep
-				} else {
-					// x<2440:R
-					if c.limit <= currentPart.min.aValue {
-						continue
-					}
-
-					newPartEnqueue.max.aValue = c.limit - 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-
-					newPartKeep.min.aValue = c.limit
-					currentPart = newPartKeep
-				}
-			case s:
-				// x>2440:R
-				if c.op == greater {
-					// Early abort
-					// Not sure about this
-					if c.limit >= currentPart.max.sValue {
-						continue
-					}
-					newPartEnqueue.min.sValue = c.limit + 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-
-					newPartKeep.max.sValue = c.limit
-					currentPart = newPartKeep
-				} else {
-					// x<2440:R
-					// c.op == lesser
-					// Early abort
-					if c.limit <= currentPart.min.sValue {
-						continue
-					}
-					newPartEnqueue.max.sValue = c.limit - 1
-					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, newPartEnqueue)
-					} else if c.dest != "R" {
-						// We continue
-						partQueue.Enqueue(newPartEnqueue)
-					}
-
-					newPartKeep.min.sValue = c.limit
-					currentPart = newPartKeep
-				}
-			case none:
-				if c.dest == "A" {
+			if c.ax == none {
+				switch c.dest {
+				case "A":
 					acceptedParts = append(acceptedParts, currentPart)
-				} else if c.dest == "R" {
-					// These parts are thrown away
+				case "R":
 					break WORKFLOW
-				} else {
-					// We continue
+				default:
 					currentPart.dest = c.dest
 					partQueue.Enqueue(currentPart)
 				}
+				continue
 			}
-		}
 
+			minVal := getMin(&currentPart, c.ax)
+			maxVal := getMax(&currentPart, c.ax)
+
+			switch c.op {
+			case greater:
+				// condition: value > limit
+				if c.limit >= maxVal {
+					continue
+				}
+				setMin(&newPartEnqueue, c.ax, c.limit+1)
+				setMax(&newPartKeep, c.ax, c.limit)
+
+			case lesser:
+				// condition: value < limit
+				if c.limit <= minVal {
+					continue
+				}
+				setMax(&newPartEnqueue, c.ax, c.limit-1)
+				setMin(&newPartKeep, c.ax, c.limit)
+			}
+
+			// Handle destinations
+			if c.dest == "A" {
+				acceptedParts = append(acceptedParts, newPartEnqueue)
+			} else if c.dest != "R" {
+				partQueue.Enqueue(newPartEnqueue)
+			}
+
+			currentPart = newPartKeep
+		}
 	}
+
 	var sum uint64 = 0
 	for _, v := range acceptedParts {
-		// fmt.Println(v)
-		// xRange := (v.max.xValue - v.min.xValue + 1)
-		// mRange := (v.max.mValue - v.min.mValue + 1)
-		// aRange := (v.max.aValue - v.min.aValue + 1)
-		// sRange := (v.max.sValue - v.min.sValue + 1)
-		partSum := (v.max.xValue - v.min.xValue + 1) * (v.max.mValue - v.min.mValue + 1) * (v.max.aValue - v.min.aValue + 1) * (v.max.sValue - v.min.sValue + 1)
-		// fmt.Printf("xMax: %d, xMin: %d, xRange: %d\n", v.max.xValue, v.min.xValue, xRange)
-		// fmt.Printf("mMax: %d, mMin: %d, mRange: %d\n", v.max.mValue, v.min.mValue, mRange)
-		// fmt.Printf("aMax: %d, aMin: %d, aRange: %d\n", v.max.aValue, v.min.aValue, aRange)
-		// fmt.Printf("sMax: %d, sMin: %d, sRange: %d\n", v.max.sValue, v.min.sValue, sRange)
-		// fmt.Println(partSum)
-		sum += partSum
-
+		sum += (v.max.xValue - v.min.xValue + 1) * (v.max.mValue - v.min.mValue + 1) * (v.max.aValue - v.min.aValue + 1) * (v.max.sValue - v.min.sValue + 1)
 	}
 	return sum
 }
@@ -545,44 +384,3 @@ func setMax(p *partLimits, ax axis, val uint64) {
 		p.max.sValue = val
 	}
 }
-
-// 	if c.ax == none {
-// 		switch c.dest {
-// 		case "A":
-// 			acceptedParts = append(acceptedParts, currentPart)
-// 		case "R":
-// 			break WORKFLOW
-// 		default:
-// 			currentPart.dest = c.dest
-// 			partQueue.Enqueue(currentPart)
-// 		}
-// 		continue
-// 	}
-
-// 	minVal := getMin(&currentPart, c.ax)
-// 	maxVal := getMax(&currentPart, c.ax)
-
-// 	switch c.op {
-// 	case greater:
-// 		if c.limit >= maxVal {
-// 			continue
-// 		}
-// 		setMin(&newPartEnqueue, c.ax, c.limit+1)
-// 		setMax(&newPartKeep, c.ax, c.limit)
-// 	case lesser:
-// 		if c.limit <= minVal {
-// 			continue
-// 		}
-// 		setMax(&newPartEnqueue, c.ax, c.limit-1)
-// 		setMin(&newPartKeep, c.ax, c.limit)
-// 	}
-
-// 	// Handle destinations
-// 	if c.dest == "A" {
-// 		acceptedParts = append(acceptedParts, newPartEnqueue)
-// 	} else if c.dest != "R" {
-// 		partQueue.Enqueue(newPartEnqueue)
-// 	}
-
-// 	currentPart = newPartKeep
-// }

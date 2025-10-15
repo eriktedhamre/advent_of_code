@@ -40,9 +40,8 @@ func TestPartTwo(t *testing.T) {
 		{"easy.txt", 10000},
 		{"easy2.txt", 256000000000000},
 		{"medium.txt", 4000000},
-		{"easy.txt", 10000},
-		{"easy.txt", 10000},
 		{"example.txt", 167409079868000},
+		{"input.txt", 131550418841958},
 	}
 
 	for _, tt := range tests {
