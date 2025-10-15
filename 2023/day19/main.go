@@ -69,7 +69,7 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
 }
 
 func partOne(file *os.File) uint64 {
@@ -137,7 +137,7 @@ func partTwo(file *os.File) uint64 {
 	}
 
 	initialPart := partLimits{dest: "in", max: partRating{xValue: 4000, mValue: 4000, aValue: 4000, sValue: 4000},
-		min: partRating{xValue: 0, mValue: 0, aValue: 0, sValue: 0}}
+		min: partRating{xValue: 1, mValue: 1, aValue: 1, sValue: 1}}
 
 	// I will try without cycle detection first
 	// With cycle detection I probably need something like this
@@ -153,7 +153,6 @@ func partTwo(file *os.File) uint64 {
 	var currentPart partLimits
 	var currentWorkflow []constraint
 	var ok bool
-	var fieldToModify *uint64
 
 DONE:
 	for {
@@ -161,6 +160,7 @@ DONE:
 			break DONE
 		}
 		currentPart, ok = partQueue.Dequeue()
+		//fmt.Print(currentPart)
 
 		if !ok {
 			log.Fatalf("partQueue.Dequeue() failed")
@@ -175,43 +175,177 @@ DONE:
 		// Whenever we hit an R throw it away
 	WORKFLOW:
 		for _, c := range currentWorkflow {
+			newPartEnqueue := partLimits{dest: c.dest, max: currentPart.max, min: currentPart.min}
+			newPartKeep := partLimits{dest: currentPart.dest, max: currentPart.max, min: currentPart.min}
 			switch c.ax {
 			case x:
+				// x>2440:R
 				if c.op == greater {
 					// Early abort
-					if c.limit > currentPart.max.xValue {
+					// Not sure about this
+					if c.limit >= currentPart.max.xValue {
 						continue
 					}
 					// Create possible parts
 					// New part that matches condition
 					// Raise min
+					// Enqueu with new destination
 
-					newPartKeep := partLimits{dest: currentPart.dest, max: currentPart.max, min: currentPart.min}
-					newPartKeep.min.xValue = c.limit + 1
-
+					newPartEnqueue.min.xValue = c.limit + 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
 					// New part that fails condition
 					// Lower max
-					newPartEnqueue := partLimits{dest: currentPart.dest, max: currentPart.max, min: currentPart.min}
-					newPartEnqueue.max.xValue = c.limit
+					// Replace current part with this
+					// Look at next constraint
+
+					newPartKeep.max.xValue = c.limit
+					currentPart = newPartKeep
 				} else {
+					// x<2440:R
 					// c.op == lesser
-					if c.limit < currentPart.min.xValue {
+					// Early abort
+					if c.limit <= currentPart.min.xValue {
 						continue
 					}
-					// Lower min
-					// Raise max
+					// Create possible parts
+					// New part that matches condition
+					// Lower max
+					// Enqueue with new destination
 
+					newPartEnqueue.max.xValue = c.limit - 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
+
+					// New part that fails condition
+					// Raise min
+					// Replace current part with this
+					// Look at next constraint
+					newPartKeep.min.xValue = c.limit
+					currentPart = newPartKeep
 				}
 
 			case m:
+				// m>2440:R
+				if c.op == greater {
+					if c.limit >= currentPart.max.mValue {
+						continue
+					}
+
+					newPartEnqueue.min.mValue = c.limit + 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
+
+					newPartKeep.max.mValue = c.limit
+					currentPart = newPartKeep
+				} else {
+					// m<2440:R
+					if c.limit <= currentPart.min.mValue {
+						continue
+					}
+
+					newPartEnqueue.max.mValue = c.limit - 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
+
+					newPartKeep.min.mValue = c.limit
+					currentPart = newPartKeep
+				}
 			case a:
+				// x>2440:R
+				if c.op == greater {
+
+					if c.limit >= currentPart.max.aValue {
+						continue
+					}
+
+					newPartEnqueue.min.aValue = c.limit + 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
+
+					newPartKeep.max.aValue = c.limit
+					currentPart = newPartKeep
+				} else {
+					// x<2440:R
+					if c.limit <= currentPart.min.aValue {
+						continue
+					}
+
+					newPartEnqueue.max.aValue = c.limit - 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
+
+					newPartKeep.min.aValue = c.limit
+					currentPart = newPartKeep
+				}
 			case s:
+				// x>2440:R
+				if c.op == greater {
+					// Early abort
+					// Not sure about this
+					if c.limit >= currentPart.max.sValue {
+						continue
+					}
+					newPartEnqueue.min.sValue = c.limit + 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
+
+					newPartKeep.max.sValue = c.limit
+					currentPart = newPartKeep
+				} else {
+					// x<2440:R
+					// c.op == lesser
+					// Early abort
+					if c.limit <= currentPart.min.sValue {
+						continue
+					}
+					newPartEnqueue.max.sValue = c.limit - 1
+					if c.dest == "A" {
+						acceptedParts = append(acceptedParts, currentPart)
+					} else if c.dest != "R" {
+						// We continue
+						partQueue.Enqueue(newPartEnqueue)
+					}
+
+					newPartKeep.min.sValue = c.limit
+					currentPart = newPartKeep
+				}
 			case none:
 				if c.dest == "A" {
 					acceptedParts = append(acceptedParts, currentPart)
-				} else if c.dest != "R" {
+				} else if c.dest == "R" {
+					// These parts are thrown away
 					break WORKFLOW
 				} else {
+					// We continue
 					currentPart.dest = c.dest
 					partQueue.Enqueue(currentPart)
 				}
@@ -219,9 +353,25 @@ DONE:
 		}
 
 	}
+	var sum uint64 = 0
+	for _, v := range acceptedParts {
+		fmt.Println(v)
+		xRange := (v.max.xValue - v.min.xValue + 1)
+		mRange := (v.max.mValue - v.min.mValue + 1)
+		aRange := (v.max.aValue - v.min.aValue + 1)
+		sRange := (v.max.sValue - v.min.sValue + 1)
+		partSum := (v.max.xValue - v.min.xValue + 1) * (v.max.mValue - v.min.mValue + 1) * (v.max.aValue - v.min.aValue + 1) * (v.max.sValue - v.min.sValue + 1)
+		fmt.Printf("xMax: %d, xMin: %d, xRange: %d\n", v.max.xValue, v.min.xValue, xRange)
+		fmt.Printf("mMax: %d, mMin: %d, mRange: %d\n", v.max.mValue, v.min.mValue, mRange)
+		fmt.Printf("aMax: %d, aMin: %d, aRange: %d\n", v.max.aValue, v.min.aValue, aRange)
+		fmt.Printf("sMax: %d, sMin: %d, sRange: %d\n", v.max.sValue, v.min.sValue, sRange)
+		fmt.Println(partSum)
+		sum += partSum
 
-	return 0
+	}
+	return sum
 }
+
 func findDest(part partRating, constraints []constraint) string {
 	dest := ""
 	var limit uint64 = 0
