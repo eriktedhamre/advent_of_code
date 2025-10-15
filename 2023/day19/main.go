@@ -24,7 +24,7 @@ const (
 type operator int
 
 const (
-	smaller operator = iota
+	lesser operator = iota
 	greater
 )
 
@@ -193,7 +193,7 @@ DONE:
 
 					newPartEnqueue.min.xValue = c.limit + 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -219,7 +219,7 @@ DONE:
 
 					newPartEnqueue.max.xValue = c.limit - 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -242,7 +242,7 @@ DONE:
 
 					newPartEnqueue.min.mValue = c.limit + 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -258,7 +258,7 @@ DONE:
 
 					newPartEnqueue.max.mValue = c.limit - 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -277,7 +277,7 @@ DONE:
 
 					newPartEnqueue.min.aValue = c.limit + 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -293,7 +293,7 @@ DONE:
 
 					newPartEnqueue.max.aValue = c.limit - 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -312,7 +312,7 @@ DONE:
 					}
 					newPartEnqueue.min.sValue = c.limit + 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -329,7 +329,7 @@ DONE:
 					}
 					newPartEnqueue.max.sValue = c.limit - 1
 					if c.dest == "A" {
-						acceptedParts = append(acceptedParts, currentPart)
+						acceptedParts = append(acceptedParts, newPartEnqueue)
 					} else if c.dest != "R" {
 						// We continue
 						partQueue.Enqueue(newPartEnqueue)
@@ -355,17 +355,17 @@ DONE:
 	}
 	var sum uint64 = 0
 	for _, v := range acceptedParts {
-		fmt.Println(v)
-		xRange := (v.max.xValue - v.min.xValue + 1)
-		mRange := (v.max.mValue - v.min.mValue + 1)
-		aRange := (v.max.aValue - v.min.aValue + 1)
-		sRange := (v.max.sValue - v.min.sValue + 1)
+		// fmt.Println(v)
+		// xRange := (v.max.xValue - v.min.xValue + 1)
+		// mRange := (v.max.mValue - v.min.mValue + 1)
+		// aRange := (v.max.aValue - v.min.aValue + 1)
+		// sRange := (v.max.sValue - v.min.sValue + 1)
 		partSum := (v.max.xValue - v.min.xValue + 1) * (v.max.mValue - v.min.mValue + 1) * (v.max.aValue - v.min.aValue + 1) * (v.max.sValue - v.min.sValue + 1)
-		fmt.Printf("xMax: %d, xMin: %d, xRange: %d\n", v.max.xValue, v.min.xValue, xRange)
-		fmt.Printf("mMax: %d, mMin: %d, mRange: %d\n", v.max.mValue, v.min.mValue, mRange)
-		fmt.Printf("aMax: %d, aMin: %d, aRange: %d\n", v.max.aValue, v.min.aValue, aRange)
-		fmt.Printf("sMax: %d, sMin: %d, sRange: %d\n", v.max.sValue, v.min.sValue, sRange)
-		fmt.Println(partSum)
+		// fmt.Printf("xMax: %d, xMin: %d, xRange: %d\n", v.max.xValue, v.min.xValue, xRange)
+		// fmt.Printf("mMax: %d, mMin: %d, mRange: %d\n", v.max.mValue, v.min.mValue, mRange)
+		// fmt.Printf("aMax: %d, aMin: %d, aRange: %d\n", v.max.aValue, v.min.aValue, aRange)
+		// fmt.Printf("sMax: %d, sMin: %d, sRange: %d\n", v.max.sValue, v.min.sValue, sRange)
+		// fmt.Println(partSum)
 		sum += partSum
 
 	}
@@ -405,7 +405,7 @@ func cmprLimit(partValue uint64, op operator, conValue uint64, con constraint) s
 		if partValue > conValue {
 			dest = con.dest
 		}
-	case smaller:
+	case lesser:
 		if partValue < conValue {
 			dest = con.dest
 		}
@@ -443,7 +443,7 @@ func readWorkflow(input string, workflows map[string][]constraint) {
 			var op operator
 			switch v[1] {
 			case '<':
-				op = smaller
+				op = lesser
 			case '>':
 				op = greater
 			}
@@ -489,3 +489,100 @@ func readPart(input string) partRating {
 	return part
 
 }
+
+func getMin(p *partLimits, ax axis) uint64 {
+	switch ax {
+	case x:
+		return p.min.xValue
+	case m:
+		return p.min.mValue
+	case a:
+		return p.min.aValue
+	case s:
+		return p.min.sValue
+	default:
+		return 0
+	}
+}
+
+func getMax(p *partLimits, ax axis) uint64 {
+	switch ax {
+	case x:
+		return p.max.xValue
+	case m:
+		return p.max.mValue
+	case a:
+		return p.max.aValue
+	case s:
+		return p.max.sValue
+	default:
+		return 0
+	}
+}
+
+func setMin(p *partLimits, ax axis, val uint64) {
+	switch ax {
+	case x:
+		p.min.xValue = val
+	case m:
+		p.min.mValue = val
+	case a:
+		p.min.aValue = val
+	case s:
+		p.min.sValue = val
+	}
+}
+
+func setMax(p *partLimits, ax axis, val uint64) {
+	switch ax {
+	case x:
+		p.max.xValue = val
+	case m:
+		p.max.mValue = val
+	case a:
+		p.max.aValue = val
+	case s:
+		p.max.sValue = val
+	}
+}
+
+// 	if c.ax == none {
+// 		switch c.dest {
+// 		case "A":
+// 			acceptedParts = append(acceptedParts, currentPart)
+// 		case "R":
+// 			break WORKFLOW
+// 		default:
+// 			currentPart.dest = c.dest
+// 			partQueue.Enqueue(currentPart)
+// 		}
+// 		continue
+// 	}
+
+// 	minVal := getMin(&currentPart, c.ax)
+// 	maxVal := getMax(&currentPart, c.ax)
+
+// 	switch c.op {
+// 	case greater:
+// 		if c.limit >= maxVal {
+// 			continue
+// 		}
+// 		setMin(&newPartEnqueue, c.ax, c.limit+1)
+// 		setMax(&newPartKeep, c.ax, c.limit)
+// 	case lesser:
+// 		if c.limit <= minVal {
+// 			continue
+// 		}
+// 		setMax(&newPartEnqueue, c.ax, c.limit-1)
+// 		setMin(&newPartKeep, c.ax, c.limit)
+// 	}
+
+// 	// Handle destinations
+// 	if c.dest == "A" {
+// 		acceptedParts = append(acceptedParts, newPartEnqueue)
+// 	} else if c.dest != "R" {
+// 		partQueue.Enqueue(newPartEnqueue)
+// 	}
+
+// 	currentPart = newPartKeep
+// }
