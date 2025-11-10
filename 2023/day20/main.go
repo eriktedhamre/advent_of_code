@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"io"
 	"log"
+	"math"
 	"os"
 	"sort"
 	"strings"
@@ -36,8 +37,8 @@ type signal struct {
 }
 
 type snapshot struct {
-	lowSignals, highSignals, iteration uint64
-	snapshot                           uint64
+	lowSignals, highSignals, snapshot uint64
+	iteration                         int
 }
 
 type module interface {
@@ -143,7 +144,7 @@ func main() {
 		return
 	}
 	defer file.Close()
-	fmt.Print(partOne(file))
+	fmt.Print(partTwo(file))
 }
 
 func partOne(file *os.File) uint64 {
@@ -196,7 +197,7 @@ func partOne(file *os.File) uint64 {
 			// Do nothing
 		case strings.HasPrefix(name, "%"):
 			trimmedName = strings.Trim(name, "%")
-			s.modules[trimmedName] = &flipFlop{name: name, state: low}
+			s.modules[trimmedName] = &flipFlop{name: trimmedName, state: low}
 			s.sortedNames = append(s.sortedNames, trimmedName)
 		case strings.HasPrefix(name, "&"):
 			trimmedName = strings.Trim(name, "&")
@@ -220,6 +221,293 @@ func partOne(file *os.File) uint64 {
 
 	sort.Strings(s.sortedNames)
 
-	fmt.Println(s)
-	return 0
+	//fmt.Println(s)
+
+	var snapshots = make(map[uint64]snapshot, 0)
+	var sortedSnaps = make([]snapshot, 0)
+
+	// Add starting state hash
+	startState := snapshot{lowSignals: 0,
+		highSignals: 0,
+		snapshot:    snapshotHash(s.modules, s.sortedNames),
+		iteration:   -1}
+	snapshots[startState.snapshot] = startState
+
+	const totalIterations uint64 = 1000
+	var currentIter snapshot
+	var startOfCycle snapshot
+	var cycle bool
+
+CYCLE:
+	for i := 0; i < 1000; i++ {
+		currentIter = runIteration(&s, len(snapshots))
+
+		sortedSnaps = append(sortedSnaps, currentIter)
+		startOfCycle, cycle = snapshots[currentIter.snapshot]
+		if !cycle {
+			snapshots[currentIter.snapshot] = currentIter
+		} else {
+			break CYCLE
+		}
+	}
+
+	var startOfCycleIndex int
+	var endOfCycleIndex int
+	var remainder uint64
+	var numberOfCycles uint64
+	var cycleLowSignal uint64 = 0
+	var cycleHighSignal uint64 = 0
+	var totalLowSignals uint64 = 0
+	var totalHighSignals uint64 = 0
+
+	// Maybe transform snapsshots into a slice sorted on iteration
+	endOfCycleIndex = currentIter.iteration
+	startOfCycleIndex = startOfCycle.iteration
+	// If Cycle Start == 0
+	if startOfCycle.iteration == -1 {
+		numberOfCycles = uint64(math.Floor(float64(totalIterations) / float64(endOfCycleIndex)))
+		remainder = totalIterations % uint64(endOfCycleIndex)
+		for _, v := range sortedSnaps {
+			cycleLowSignal += v.lowSignals
+			cycleHighSignal += v.highSignals
+		}
+		totalLowSignals = cycleLowSignal * numberOfCycles
+		totalHighSignals = cycleHighSignal * numberOfCycles
+		for i := range remainder {
+			totalLowSignals += sortedSnaps[i].lowSignals
+			totalHighSignals += sortedSnaps[i].highSignals
+		}
+	} else {
+		cycleSize := endOfCycleIndex - startOfCycleIndex
+		numberOfCycles = uint64(math.Floor(float64(totalIterations) / float64(cycleSize)))
+		remainder = (totalIterations - uint64(startOfCycleIndex)) % uint64(cycleSize)
+		// prefix
+		for i := 0; i < startOfCycleIndex; i++ {
+			totalLowSignals += sortedSnaps[i].lowSignals
+			totalHighSignals += sortedSnaps[i].highSignals
+		}
+		// cycles
+		for i := startOfCycleIndex; i < (startOfCycleIndex + cycleSize); i++ {
+			cycleLowSignal += sortedSnaps[i].lowSignals
+			cycleHighSignal += sortedSnaps[i].highSignals
+		}
+		totalLowSignals = cycleLowSignal * numberOfCycles
+		totalHighSignals = cycleHighSignal * numberOfCycles
+		// suffix
+		for i := startOfCycleIndex; i < (startOfCycleIndex + int(remainder)); i++ {
+			totalLowSignals += sortedSnaps[i].lowSignals
+			totalHighSignals += sortedSnaps[i].highSignals
+		}
+	}
+	//	simply calculate number of steps in the cycle
+	// 	calculate the remainder
+	//  calculate signals for the remainder
+	// else
+	// 	calculate cycle start
+	// 	Add signal counts from non cyclical steps
+	// 	calculate number of steps in the cycle
+	//  calculate the remainder
+	//  calculate signals for the remainder
+
+	// snapshots = append(snapshots, runIteration(&s, snapshots))
+	// for _, v := range snapshots {
+	// 	fmt.Printf("lowSignalsSent %d, highSignalsSent %d, iteration %d, hash %d\n", v.lowSignals, v.highSignals, v.iteration, v.snapshot)
+	// }
+
+	return totalHighSignals * totalLowSignals
+}
+
+func partTwo(file *os.File) uint64 {
+	var line string
+
+	var inputs map[string][]string = make(map[string][]string, 0)
+	var moduleWithType []string = make([]string, 0)
+
+	//var flipFlops []flipFlop
+	//var conjunctions []conjunction
+
+	s := system{
+		modules:     make(map[string]module),
+		connections: make(map[string][]string),
+		sortedNames: make([]string, 0),
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line = scanner.Text()
+
+		// ["broadcaster", "a,b,c"]
+		// ["%a", "b"]
+		// ["&inv", "b,cls,d"]
+		src, dest, ok := strings.Cut(line, "->")
+		if !ok {
+			log.Fatalf("No -> in line %s", line)
+		}
+
+		src = strings.TrimSpace(src)
+		moduleWithType = append(moduleWithType, src)
+		src = strings.Trim(src, "&%")
+		dest = strings.TrimSpace(dest)
+
+		dests := strings.Split(dest, ",")
+		for i := range dests {
+			dests[i] = strings.TrimSpace(dests[i])
+		}
+
+		s.connections[src] = dests
+
+		for _, dst := range dests {
+			inputs[dst] = append(inputs[dst], src)
+		}
+	}
+
+	var trimmedName string
+	for _, name := range moduleWithType {
+		switch {
+		case name == "broadcaster":
+			// Do nothing
+		case strings.HasPrefix(name, "%"):
+			trimmedName = strings.Trim(name, "%")
+			s.modules[trimmedName] = &flipFlop{name: trimmedName, state: low}
+			s.sortedNames = append(s.sortedNames, trimmedName)
+		case strings.HasPrefix(name, "&"):
+			trimmedName = strings.Trim(name, "&")
+			s.sortedNames = append(s.sortedNames, trimmedName)
+			srcs := inputs[trimmedName]
+			index := make(map[string]int, len(srcs))
+			for i, src := range srcs {
+				index[src] = i
+			}
+			inputMemory := make([]pulse, len(srcs))
+			s.modules[trimmedName] = &conjunction{
+				name:        trimmedName,
+				index:       index,
+				inputMemory: inputMemory,
+			}
+
+		default:
+			log.Fatalf("Undefined moduleWithType: %s", name)
+		}
+	}
+
+	sort.Strings(s.sortedNames)
+
+	var foundRx bool
+	var iterationCount uint64 = 0
+
+FOUNDRX:
+	for {
+		foundRx = runIterationTwo(&s)
+		iterationCount++
+		fmt.Println(iterationCount)
+		if foundRx {
+			break FOUNDRX
+		}
+	}
+
+	return iterationCount
+}
+
+func runIteration(s *system, iterCount int) snapshot {
+
+	// Add broadcast -> connections signals
+	broadcast := generateOutputSignals("broadcaster", low, s.connections)
+	for _, signal := range broadcast {
+		s.signalQueue.Enqueue(signal)
+	}
+
+	s.lowSignalsSent = 0
+	s.highSignalsSent = 0
+
+	// Process Signals in SignalQueue
+
+	// Add one low signal sent for signal from button module
+	s.lowSignalsSent++
+
+DONE:
+	for {
+		if s.signalQueue.Len() == 0 {
+			break DONE
+		}
+
+		curSignal, ok := s.signalQueue.Dequeue()
+
+		if !ok {
+			log.Fatalf("s.signalQueue.Dequeue() failed")
+		}
+
+		if curSignal.p {
+			s.highSignalsSent++
+		} else {
+			s.lowSignalsSent++
+		}
+
+		dstModule, ok := s.modules[curSignal.dst]
+		if ok {
+			signals, update := dstModule.process(&curSignal, s.connections)
+
+			if update {
+				for _, signal := range signals {
+					s.signalQueue.Enqueue(signal)
+				}
+			}
+		}
+	}
+
+	res := snapshot{lowSignals: s.lowSignalsSent,
+		highSignals: s.highSignalsSent,
+		iteration:   iterCount,
+		snapshot:    snapshotHash(s.modules, s.sortedNames)}
+
+	//fmt.Printf("lowSignalsSent %d, highSignalsSent %d, iteration %d, hash %d\n", res.lowSignals, res.highSignals, res.iteration, res.snapshot)
+
+	return res
+
+	// Calculate Hash
+
+	// Something with the cycles
+}
+
+func runIterationTwo(s *system) bool {
+
+	// Add broadcast -> connections signals
+	broadcast := generateOutputSignals("broadcaster", low, s.connections)
+	for _, signal := range broadcast {
+		s.signalQueue.Enqueue(signal)
+	}
+
+	s.lowSignalsSent = 0
+	s.highSignalsSent = 0
+
+	var foundRx bool = false
+
+DONE:
+	for {
+		if s.signalQueue.Len() == 0 {
+			break DONE
+		}
+
+		curSignal, ok := s.signalQueue.Dequeue()
+
+		if !ok {
+			log.Fatalf("s.signalQueue.Dequeue() failed")
+		}
+
+		if curSignal.dst == "rx" && curSignal.p == low {
+			foundRx = true
+			break DONE
+		}
+
+		dstModule, ok := s.modules[curSignal.dst]
+		if ok {
+			signals, update := dstModule.process(&curSignal, s.connections)
+
+			if update {
+				for _, signal := range signals {
+					s.signalQueue.Enqueue(signal)
+				}
+			}
+		}
+	}
+
+	return foundRx
 }
