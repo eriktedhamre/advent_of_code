@@ -148,80 +148,8 @@ func main() {
 }
 
 func partOne(file *os.File) uint64 {
-	var line string
 
-	var inputs map[string][]string = make(map[string][]string, 0)
-	var moduleWithType []string = make([]string, 0)
-
-	//var flipFlops []flipFlop
-	//var conjunctions []conjunction
-
-	s := system{
-		modules:     make(map[string]module),
-		connections: make(map[string][]string),
-		sortedNames: make([]string, 0),
-	}
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line = scanner.Text()
-
-		// ["broadcaster", "a,b,c"]
-		// ["%a", "b"]
-		// ["&inv", "b,cls,d"]
-		src, dest, ok := strings.Cut(line, "->")
-		if !ok {
-			log.Fatalf("No -> in line %s", line)
-		}
-
-		src = strings.TrimSpace(src)
-		moduleWithType = append(moduleWithType, src)
-		src = strings.Trim(src, "&%")
-		dest = strings.TrimSpace(dest)
-
-		dests := strings.Split(dest, ",")
-		for i := range dests {
-			dests[i] = strings.TrimSpace(dests[i])
-		}
-
-		s.connections[src] = dests
-
-		for _, dst := range dests {
-			inputs[dst] = append(inputs[dst], src)
-		}
-	}
-
-	var trimmedName string
-	for _, name := range moduleWithType {
-		switch {
-		case name == "broadcaster":
-			// Do nothing
-		case strings.HasPrefix(name, "%"):
-			trimmedName = strings.Trim(name, "%")
-			s.modules[trimmedName] = &flipFlop{name: trimmedName, state: low}
-			s.sortedNames = append(s.sortedNames, trimmedName)
-		case strings.HasPrefix(name, "&"):
-			trimmedName = strings.Trim(name, "&")
-			s.sortedNames = append(s.sortedNames, trimmedName)
-			srcs := inputs[trimmedName]
-			index := make(map[string]int, len(srcs))
-			for i, src := range srcs {
-				index[src] = i
-			}
-			inputMemory := make([]pulse, len(srcs))
-			s.modules[trimmedName] = &conjunction{
-				name:        trimmedName,
-				index:       index,
-				inputMemory: inputMemory,
-			}
-
-		default:
-			log.Fatalf("Undefined moduleWithType: %s", name)
-		}
-	}
-
-	sort.Strings(s.sortedNames)
-
-	//fmt.Println(s)
+	s := parseInput(file)
 
 	var snapshots = make(map[uint64]snapshot, 0)
 	var sortedSnaps = make([]snapshot, 0)
@@ -240,7 +168,7 @@ func partOne(file *os.File) uint64 {
 
 CYCLE:
 	for i := 0; i < 1000; i++ {
-		currentIter = runIteration(&s, len(snapshots))
+		currentIter = runIteration(s, len(snapshots))
 
 		sortedSnaps = append(sortedSnaps, currentIter)
 		startOfCycle, cycle = snapshots[currentIter.snapshot]
@@ -260,7 +188,6 @@ CYCLE:
 	var totalLowSignals uint64 = 0
 	var totalHighSignals uint64 = 0
 
-	// Maybe transform snapsshots into a slice sorted on iteration
 	endOfCycleIndex = currentIter.iteration
 	startOfCycleIndex = startOfCycle.iteration
 	// If Cycle Start == 0
@@ -299,100 +226,29 @@ CYCLE:
 			totalHighSignals += sortedSnaps[i].highSignals
 		}
 	}
-	//	simply calculate number of steps in the cycle
-	// 	calculate the remainder
-	//  calculate signals for the remainder
-	// else
-	// 	calculate cycle start
-	// 	Add signal counts from non cyclical steps
-	// 	calculate number of steps in the cycle
-	//  calculate the remainder
-	//  calculate signals for the remainder
 
 	return totalHighSignals * totalLowSignals
 }
 
 func partTwo(file *os.File) uint64 {
-	var line string
 
-	var inputs map[string][]string = make(map[string][]string, 0)
-	var moduleWithType []string = make([]string, 0)
-
-	//var flipFlops []flipFlop
-	//var conjunctions []conjunction
-
-	s := system{
-		modules:     make(map[string]module),
-		connections: make(map[string][]string),
-		sortedNames: make([]string, 0),
-	}
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line = scanner.Text()
-
-		// ["broadcaster", "a,b,c"]
-		// ["%a", "b"]
-		// ["&inv", "b,cls,d"]
-		src, dest, ok := strings.Cut(line, "->")
-		if !ok {
-			log.Fatalf("No -> in line %s", line)
-		}
-
-		src = strings.TrimSpace(src)
-		moduleWithType = append(moduleWithType, src)
-		src = strings.Trim(src, "&%")
-		dest = strings.TrimSpace(dest)
-
-		dests := strings.Split(dest, ",")
-		for i := range dests {
-			dests[i] = strings.TrimSpace(dests[i])
-		}
-
-		s.connections[src] = dests
-
-		for _, dst := range dests {
-			inputs[dst] = append(inputs[dst], src)
-		}
-	}
-
-	var trimmedName string
-	for _, name := range moduleWithType {
-		switch {
-		case name == "broadcaster":
-			// Do nothing
-		case strings.HasPrefix(name, "%"):
-			trimmedName = strings.Trim(name, "%")
-			s.modules[trimmedName] = &flipFlop{name: trimmedName, state: low}
-			s.sortedNames = append(s.sortedNames, trimmedName)
-		case strings.HasPrefix(name, "&"):
-			trimmedName = strings.Trim(name, "&")
-			s.sortedNames = append(s.sortedNames, trimmedName)
-			srcs := inputs[trimmedName]
-			index := make(map[string]int, len(srcs))
-			for i, src := range srcs {
-				index[src] = i
-			}
-			inputMemory := make([]pulse, len(srcs))
-			s.modules[trimmedName] = &conjunction{
-				name:        trimmedName,
-				index:       index,
-				inputMemory: inputMemory,
-			}
-
-		default:
-			log.Fatalf("Undefined moduleWithType: %s", name)
-		}
-	}
-
-	sort.Strings(s.sortedNames)
+	s := parseInput(file)
 
 	var iterationCount uint64 = 1
 	var cycleCount = make(map[string][]uint64, 0)
-	var keys = make([]string, 0)
-	keys = append(keys, "ct", "xc", "kp", "ks")
+
+	keys := []string{"ct", "xc", "kp", "ks"}
+	keySet := make(map[string]struct{}, len(keys))
+	for _, k := range keys {
+		keySet[k] = struct{}{}
+	}
 
 	for {
-		runIterationTwo(&s, iterationCount, cycleCount)
+		processSignals(s, func(sig signal) {
+			if _, exists := keySet[sig.dst]; exists && sig.p == low {
+				cycleCount[sig.dst] = append(cycleCount[sig.dst], iterationCount)
+			}
+		})
 		iterationCount++
 
 		allKeysSat := true
@@ -420,28 +276,29 @@ func partTwo(file *os.File) uint64 {
 
 func runIteration(s *system, iterCount int) snapshot {
 
+	processSignals(s, nil)
+
+	res := snapshot{lowSignals: s.lowSignalsSent,
+		highSignals: s.highSignalsSent,
+		iteration:   iterCount,
+		snapshot:    snapshotHash(s.modules, s.sortedNames)}
+
+	return res
+
+}
+
+func processSignals(s *system, onSignal func(sig signal)) {
 	// Add broadcast -> connections signals
 	broadcast := generateOutputSignals("broadcaster", low, s.connections)
 	for _, signal := range broadcast {
 		s.signalQueue.Enqueue(signal)
 	}
 
-	s.lowSignalsSent = 0
+	s.lowSignalsSent = 1
 	s.highSignalsSent = 0
 
-	// Process Signals in SignalQueue
-
-	// Add one low signal sent for signal from button module
-	s.lowSignalsSent++
-
-DONE:
-	for {
-		if s.signalQueue.Len() == 0 {
-			break DONE
-		}
-
+	for s.signalQueue.Len() > 0 {
 		curSignal, ok := s.signalQueue.Dequeue()
-
 		if !ok {
 			log.Fatalf("s.signalQueue.Dequeue() failed")
 		}
@@ -452,80 +309,88 @@ DONE:
 			s.lowSignalsSent++
 		}
 
-		dstModule, ok := s.modules[curSignal.dst]
-		if ok {
+		if dstModule, ok := s.modules[curSignal.dst]; ok {
 			signals, update := dstModule.process(&curSignal, s.connections)
-
 			if update {
-				for _, signal := range signals {
-					s.signalQueue.Enqueue(signal)
+				for _, sig := range signals {
+					s.signalQueue.Enqueue(sig)
 				}
 			}
 		}
+
+		if onSignal != nil {
+			onSignal(curSignal)
+		}
 	}
-
-	res := snapshot{lowSignals: s.lowSignalsSent,
-		highSignals: s.highSignalsSent,
-		iteration:   iterCount,
-		snapshot:    snapshotHash(s.modules, s.sortedNames)}
-
-	//fmt.Printf("lowSignalsSent %d, highSignalsSent %d, iteration %d, hash %d\n", res.lowSignals, res.highSignals, res.iteration, res.snapshot)
-
-	return res
-
-	// Calculate Hash
-
-	// Something with the cycles
 }
 
-func runIterationTwo(s *system, iteration uint64, cycles map[string][]uint64) {
+func parseInput(file *os.File) *system {
+	scanner := bufio.NewScanner(file)
 
-	// Add broadcast -> connections signals
-	broadcast := generateOutputSignals("broadcaster", low, s.connections)
-	for _, signal := range broadcast {
-		s.signalQueue.Enqueue(signal)
+	inputs := make(map[string][]string)
+	moduleWithType := make([]string, 0)
+	s := &system{
+		modules:     make(map[string]module),
+		connections: make(map[string][]string),
+		sortedNames: make([]string, 0),
 	}
 
-	s.lowSignalsSent = 0
-	s.highSignalsSent = 0
-
-DONE:
-	for {
-		if s.signalQueue.Len() == 0 {
-			break DONE
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
 		}
 
-		curSignal, ok := s.signalQueue.Dequeue()
-
+		src, dest, ok := strings.Cut(line, "->")
 		if !ok {
-			log.Fatalf("s.signalQueue.Dequeue() failed")
+			log.Fatalf("No -> in line %s", line)
 		}
 
-		if curSignal.dst == "ct" && curSignal.p == low {
-			cycles["ct"] = append(cycles["ct"], iteration)
+		src = strings.TrimSpace(src)
+		moduleWithType = append(moduleWithType, src)
+		trimmedSrc := strings.Trim(src, "&%")
+		dest = strings.TrimSpace(dest)
+
+		dests := strings.Split(dest, ",")
+		for i := range dests {
+			dests[i] = strings.TrimSpace(dests[i])
 		}
 
-		if curSignal.dst == "xc" && curSignal.p == low {
-			cycles["xc"] = append(cycles["xc"], iteration)
-		}
+		s.connections[trimmedSrc] = dests
 
-		if curSignal.dst == "kp" && curSignal.p == low {
-			cycles["kp"] = append(cycles["kp"], iteration)
-		}
-
-		if curSignal.dst == "ks" && curSignal.p == low {
-			cycles["ks"] = append(cycles["ks"], iteration)
-		}
-
-		dstModule, ok := s.modules[curSignal.dst]
-		if ok {
-			signals, update := dstModule.process(&curSignal, s.connections)
-
-			if update {
-				for _, signal := range signals {
-					s.signalQueue.Enqueue(signal)
-				}
-			}
+		for _, dst := range dests {
+			inputs[dst] = append(inputs[dst], trimmedSrc)
 		}
 	}
+
+	for _, name := range moduleWithType {
+		var trimmedName string
+		switch {
+		case name == "broadcaster":
+			// do nothing
+		case strings.HasPrefix(name, "%"):
+			trimmedName = strings.Trim(name, "%")
+			s.modules[trimmedName] = &flipFlop{name: trimmedName, state: low}
+			s.sortedNames = append(s.sortedNames, trimmedName)
+		case strings.HasPrefix(name, "&"):
+			trimmedName = strings.Trim(name, "&")
+			s.sortedNames = append(s.sortedNames, trimmedName)
+			srcs := inputs[trimmedName]
+			index := make(map[string]int, len(srcs))
+			for i, src := range srcs {
+				index[src] = i
+			}
+			inputMemory := make([]pulse, len(srcs))
+			s.modules[trimmedName] = &conjunction{
+				name:        trimmedName,
+				index:       index,
+				inputMemory: inputMemory,
+			}
+		default:
+			log.Fatalf("Undefined moduleWithType: %s", name)
+		}
+	}
+
+	sort.Strings(s.sortedNames)
+	return s
 }
