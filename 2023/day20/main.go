@@ -309,11 +309,6 @@ CYCLE:
 	//  calculate the remainder
 	//  calculate signals for the remainder
 
-	// snapshots = append(snapshots, runIteration(&s, snapshots))
-	// for _, v := range snapshots {
-	// 	fmt.Printf("lowSignalsSent %d, highSignalsSent %d, iteration %d, hash %d\n", v.lowSignals, v.highSignals, v.iteration, v.snapshot)
-	// }
-
 	return totalHighSignals * totalLowSignals
 }
 
@@ -391,20 +386,36 @@ func partTwo(file *os.File) uint64 {
 
 	sort.Strings(s.sortedNames)
 
-	var foundRx bool
-	var iterationCount uint64 = 0
+	var iterationCount uint64 = 1
+	var cycleCount = make(map[string][]uint64, 0)
+	var keys = make([]string, 0)
+	keys = append(keys, "ct", "xc", "kp", "ks")
 
-FOUNDRX:
 	for {
-		foundRx = runIterationTwo(&s)
+		runIterationTwo(&s, iterationCount, cycleCount)
 		iterationCount++
-		fmt.Println(iterationCount)
-		if foundRx {
-			break FOUNDRX
+
+		allKeysSat := true
+
+		for _, k := range keys {
+			iterations, ok := cycleCount[k]
+
+			if !ok || len(iterations) < 2 {
+				allKeysSat = false
+				break
+			}
+		}
+		if allKeysSat {
+			break
 		}
 	}
 
-	return iterationCount
+	var answer = cycleCount[keys[0]][0]
+	for i := 1; i < len(keys); i++ {
+		answer = utils.NaiveLCM(answer, cycleCount[keys[i]][0])
+	}
+
+	return answer
 }
 
 func runIteration(s *system, iterCount int) snapshot {
@@ -467,7 +478,7 @@ DONE:
 	// Something with the cycles
 }
 
-func runIterationTwo(s *system) bool {
+func runIterationTwo(s *system, iteration uint64, cycles map[string][]uint64) {
 
 	// Add broadcast -> connections signals
 	broadcast := generateOutputSignals("broadcaster", low, s.connections)
@@ -477,8 +488,6 @@ func runIterationTwo(s *system) bool {
 
 	s.lowSignalsSent = 0
 	s.highSignalsSent = 0
-
-	var foundRx bool = false
 
 DONE:
 	for {
@@ -492,9 +501,20 @@ DONE:
 			log.Fatalf("s.signalQueue.Dequeue() failed")
 		}
 
-		if curSignal.dst == "rx" && curSignal.p == low {
-			foundRx = true
-			break DONE
+		if curSignal.dst == "ct" && curSignal.p == low {
+			cycles["ct"] = append(cycles["ct"], iteration)
+		}
+
+		if curSignal.dst == "xc" && curSignal.p == low {
+			cycles["xc"] = append(cycles["xc"], iteration)
+		}
+
+		if curSignal.dst == "kp" && curSignal.p == low {
+			cycles["kp"] = append(cycles["kp"], iteration)
+		}
+
+		if curSignal.dst == "ks" && curSignal.p == low {
+			cycles["ks"] = append(cycles["ks"], iteration)
 		}
 
 		dstModule, ok := s.modules[curSignal.dst]
@@ -508,6 +528,4 @@ DONE:
 			}
 		}
 	}
-
-	return foundRx
 }
