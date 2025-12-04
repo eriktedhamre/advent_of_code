@@ -97,7 +97,7 @@ object Day01 {
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        println("Usage: ./gradle <inputfile>")
+        println("Usage: ./gradlew day01 -Pargs=<inputfile>")
         return
     }
 
