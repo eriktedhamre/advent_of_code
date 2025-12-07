@@ -43,34 +43,33 @@ object Day03 {
             val lit = mutableListOf<IndexedValue<Long>>()
 
 
-            intervals.add(0 to bulbs.size)
-            while (lit.size != 12) {
-                val currentInterval = intervals.removeLast()
+            intervals += 0 to bulbs.size
 
-                val max = if ((currentInterval.first - currentInterval.second) == 0) {
-                    bulbs.withIndex().elementAt(currentInterval.first)
+            while (lit.size < 12) {
+                val (start, end) = intervals.removeLast()
+
+                val maxIndexed = if (end - start == 1) {
+                    bulbs.withIndex().elementAt(start)
                 } else {
-                    bulbs.subList(currentInterval.first, currentInterval.second).withIndex().maxBy { it.value }
+                    bulbs.subList(start, end)
+                        .withIndex()
+                        .maxBy { it.value }
+                        .let { IndexedValue(start + it.index, it.value) }
                 }
 
-                val maxFixedIndex = if ((currentInterval.first - currentInterval.second) == 0) max else IndexedValue(currentInterval.first + max.index, max.value)
-                lit.add(maxFixedIndex)
+                lit += maxIndexed
 
-                if (maxFixedIndex.index != currentInterval.first) {
-                    val leftInterval = Pair(currentInterval.first, maxFixedIndex.index)
-                    intervals.addLast(leftInterval)
+                if (maxIndexed.index > start) {
+                    intervals += start to maxIndexed.index
                 }
-
-                if ( currentInterval.second - (maxFixedIndex.index + 1) > 0) {
-                    val rightInterval = Pair(maxFixedIndex.index + 1, currentInterval.second)
-                    intervals.addLast(rightInterval)
+                if (maxIndexed.index + 1 < end) {
+                    intervals += (maxIndexed.index + 1) to end
                 }
             }
 
             lit.sortBy { it.index }
-
-            val partialSum = lit.fold("") {str, num -> str + num.value.toString()}.toLong()
-            println(partialSum)
+            val partialSum =
+                lit.joinToString(separator = "") { it.value.toString() }.toLong()
             sum + partialSum
         }
     }
